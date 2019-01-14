@@ -1,6 +1,6 @@
 
 
-###DDPG
+### DDPG
 
 agent에 들어가는 dictionary 집합은
 
@@ -41,7 +41,7 @@ agent에 들어가는 dictionary 집합은
 
 
 
-###TD3
+### TD3
 
 agent에 들어가는 dictionary 집합은
 
