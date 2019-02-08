@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib as tc
 
-from baselines import logger
+from baselines import logger 
 from baselines.common.mpi_adam import MpiAdam
 import baselines.common.tf_util as U # = baselines.her.util
 from baselines.common.mpi_running_mean_std import RunningMeanStd
@@ -301,7 +301,7 @@ class DDPG(object):
             actor_tf = self.perturbed_actor_tf
         else:
             actor_tf = self.actor_tf
-        feed_dict = {self.obs0: U.adjust_shape(self.obs0, [obs])}
+        feed_dict = {self.obs0: U.adjust_shape(self.obs0, [obs])} #obs0에만 obs feed해준다
 
 
         if compute_Q:

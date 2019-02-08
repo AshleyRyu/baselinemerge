@@ -6,7 +6,10 @@ class Model(object):
     def __init__(self, name, network='mlp', **network_kwargs):
         self.name = name
         self.network_builder = get_network_builder(network)(**network_kwargs)
-
+        # if callable(name):
+        #     return name
+        # elif name in mapping:
+        #     return mapping[name]
     @property
     def vars(self):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
@@ -23,7 +26,7 @@ class Model(object):
 class Actor(Model):
     def __init__(self, nb_actions, name='actor', network='mlp', **network_kwargs):
         super().__init__(name=name, network=network, **network_kwargs)
-        self.nb_actions = nb_actions
+        self.nb_actions = nb_actions #nb_actions = env.action_space.shape[-1] from ddpg.py
 
     def __call__(self, obs, reuse=False):
         with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):

@@ -25,7 +25,9 @@ class DDPG(object):
                  Q_lr, pi_lr, norm_eps, norm_clip, max_u, action_l2, clip_obs, scope, T,
                  rollout_batch_size, subtract_goals, relative_goals, clip_pos_returns, clip_return,
                  bc_loss, q_filter, num_demo, demo_batch_size, prm_loss_weight, aux_loss_weight,
-                 sample_transitions, gamma, reuse=False, **kwargs):
+                 
+                #  sample_transitions, gamma, reuse=False, **kwargs):
+                 sample_transitions, gamma, td3_policy_freq, td3_policy_noise, td3_noise_clip,  reuse=False, **kwargs): ##
         """Implementation of DDPG that is used in combination with Hindsight Experience Replay (HER).
             Added functionality to use demonstrations for training to Overcome exploration problem.
 
@@ -69,8 +71,15 @@ class DDPG(object):
 
         input_shapes = dims_to_shapes(self.input_dims)
         self.dimo = self.input_dims['o']
+        # self.dimo1= self.input_dims['o1'] ##A.R add for TD3 (has obs0, obs1)
         self.dimg = self.input_dims['g']
         self.dimu = self.input_dims['u']
+        #추가된 내용
+        #parameters for using TD3 variant of DDPG
+        #https://arxiv.org/abs/1802.09477
+        self.td3_policy_freq = td3_policy_freq
+        self.td3_policy_noise = td3_policy_noise
+        self.td3_noise_clip = td3_noise_clip
 
         # Prepare staging area for feeding data to the model.
         stage_shapes = OrderedDict()
@@ -79,6 +88,7 @@ class DDPG(object):
                 continue
             stage_shapes[key] = (None, *input_shapes[key])
         for key in ['o', 'g']:
+        # for key in ['o', 'o1', 'g']: #o1 added by A.R
             stage_shapes[key + '_2'] = stage_shapes[key]
         stage_shapes['r'] = (None,)
         self.stage_shapes = stage_shapes
@@ -95,7 +105,8 @@ class DDPG(object):
             self._create_network(reuse=reuse)
 
         # Configure the replay buffer.
-        buffer_shapes = {key: (self.T-1 if key != 'o' else self.T, *input_shapes[key])
+        buffer_shapes = {key: (self.T-1 if key != 'o' else self.T, *input_shapes[key]) 
+        # buffer_shapes = {key: (self.T-1 if key != 'o' and key != 'o1' else self.T, *input_shapes[key]) #A.Rㅇ
                          for key, val in input_shapes.items()}
         buffer_shapes['g'] = (buffer_shapes['g'][0], self.dimg)
         buffer_shapes['ag'] = (self.T, self.dimg)
@@ -110,32 +121,45 @@ class DDPG(object):
         return np.random.uniform(low=-self.max_u, high=self.max_u, size=(n, self.dimu))
 
     def _preprocess_og(self, o, ag, g):
-        if self.relative_goals:
+    # def _preprocess_og(self, o, o1, ag, g): #A.R
+        if self.relative_goals: ## goal reshape 해주는 곳. ag vs g..흠
             g_shape = g.shape
             g = g.reshape(-1, self.dimg)
             ag = ag.reshape(-1, self.dimg)
-            g = self.subtract_goals(g, ag)
+            g = self.subtract_goals(g, ag) #상대적인 골로 만들어 주는구나?..
+            '''
+            def simple_goal_subtract(a, b):
+            assert a.shape == b.shape
+            return a - b
+            '''
             g = g.reshape(*g_shape)
         o = np.clip(o, -self.clip_obs, self.clip_obs)
+        # o1 = np.clip(o1, -self.clip_obs, self.clip_obs) #A.R
         g = np.clip(g, -self.clip_obs, self.clip_obs)
+        # return o, o1, g
         return o, g
 
     def step(self, obs):
         actions = self.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'])
+        # print("for debug, obs : {}".format(obs['observation']))
         return actions, None, None, None
 
 
+    # def get_actions(self, o, o1, ag, g, noise_eps=0., random_eps=0., use_target_net=False, ##o1이 target 네트워크
     def get_actions(self, o, ag, g, noise_eps=0., random_eps=0., use_target_net=False,
                     compute_Q=False):
-        o, g = self._preprocess_og(o, ag, g)
+        # o, o1, g = self._preprocess_og(o, o1, ag, g) ##
+        o, g = self._preprocess_og(o, ag, g) 
         policy = self.target if use_target_net else self.main
         # values to compute
         vals = [policy.pi_tf]
+        
         if compute_Q:
             vals += [policy.Q_pi_tf]
         # feed
         feed = {
             policy.o_tf: o.reshape(-1, self.dimo),
+            # policy.o1_tf: o1.reshape(-1, self.dimo), ##
             policy.g_tf: g.reshape(-1, self.dimg),
             policy.u_tf: np.zeros((o.size // self.dimo, self.dimu), dtype=np.float32)
         }
@@ -274,6 +298,7 @@ class DDPG(object):
             transitions = self.buffer.sample(self.batch_size) #otherwise only sample from primary buffer
 
         o, o_2, g = transitions['o'], transitions['o_2'], transitions['g']
+        # o1, o1_2, g = transitions['o1'], transitions['o1_2'] ## A.R
         ag, ag_2 = transitions['ag'], transitions['ag_2']
         transitions['o'], transitions['g'] = self._preprocess_og(o, ag, g)
         transitions['o_2'], transitions['g_2'] = self._preprocess_og(o_2, ag_2, g)
@@ -305,16 +330,19 @@ class DDPG(object):
 
     def _vars(self, scope):
         res = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.scope + '/' + scope)
-        assert len(res) > 0
+        assert len(res) > 0 #######################이게 왜걸리지? 왜 다시 안걸리지?
         return res
 
     def _global_vars(self, scope):
         res = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope + '/' + scope)
+        # print("DEBUG, {}".format(res))
+        
         return res
 
-    def _create_network(self, reuse=False):
-        logger.info("Creating a DDPG agent with action space %d x %s..." % (self.dimu, self.max_u))
+    def _create_network(self, reuse=False): ## num_demo 추가
+        logger.info("Debug : Creating a DDPG agent with action space %d x %s..." % (self.dimu, self.max_u))
         self.sess = tf_util.get_session()
+        # self.num_demo = num_demo
 
         # running averages
         with tf.variable_scope('o_stats') as vs:
@@ -341,67 +369,198 @@ class DDPG(object):
                 vs.reuse_variables()
             self.main = self.create_actor_critic(batch_tf, net_type='main', **self.__dict__)
             vs.reuse_variables()
-        with tf.variable_scope('target') as vs:
+
+        with tf.variable_scope('target1') as vs:
             if reuse:
                 vs.reuse_variables()
-            target_batch_tf = batch_tf.copy()
-            target_batch_tf['o'] = batch_tf['o_2']
-            target_batch_tf['g'] = batch_tf['g_2']
-            self.target = self.create_actor_critic(
-                target_batch_tf, net_type='target', **self.__dict__)
+            target1_batch_tf = batch_tf.copy()
+            target1_batch_tf['o'] = batch_tf['o_2']
+            target1_batch_tf['g'] = batch_tf['g_2']
+            self.target1 = self.create_actor_critic(
+                target1_batch_tf, net_type='target1', **self.__dict__)
             vs.reuse_variables()
-        assert len(self._vars("main")) == len(self._vars("target"))
+            print("tf.variable_scope(target1) = {}".format(tf.variable_scope('target1')))
+            print("batch= {}".format(target1_batch_tf))
+            # print(type('target')) #<class 'baselines.her.actor_critic.ActorCritic'>
+        assert len(self._vars("main")) == len(self._vars("target1"))
 
-        # loss functions
-        target_Q_pi_tf = self.target.Q_pi_tf
-        clip_range = (-self.clip_return, 0. if self.clip_pos_returns else np.inf)
-        target_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_pi_tf, *clip_range)
-        self.Q_loss_tf = tf.reduce_mean(tf.square(tf.stop_gradient(target_tf) - self.main.Q_tf))
+        with tf.variable_scope('target2') as vs:
+            if reuse:
+                vs.reuse_variables()
+            target2_batch_tf = batch_tf.copy()
+            target2_batch_tf['o'] = batch_tf['o_2']
+            target2_batch_tf['g'] = batch_tf['g_2']
+            self.target2 = self.create_actor_critic(
+                target2_batch_tf, net_type='target2', **self.__dict__)
+            vs.reuse_variables()
+            print("tf.variable_scope(target2) = {}".format(tf.variable_scope('target2')))
+            print("batch= {}".format(target2_batch_tf))
+        assert len(self._vars("main")) == len(self._vars("target2"))
 
-        if self.bc_loss ==1 and self.q_filter == 1 : # train with demonstrations and use bc_loss and q_filter both
-            maskMain = tf.reshape(tf.boolean_mask(self.main.Q_tf > self.main.Q_pi_tf, mask), [-1]) #where is the demonstrator action better than actor action according to the critic? choose those samples only
-            #define the cloning loss on the actor's actions only on the samples which adhere to the above masks
-            self.cloning_loss_tf = tf.reduce_sum(tf.square(tf.boolean_mask(tf.boolean_mask((self.main.pi_tf), mask), maskMain, axis=0) - tf.boolean_mask(tf.boolean_mask((batch_tf['u']), mask), maskMain, axis=0)))
-            self.pi_loss_tf = -self.prm_loss_weight * tf.reduce_mean(self.main.Q_pi_tf) #primary loss scaled by it's respective weight prm_loss_weight
-            self.pi_loss_tf += self.prm_loss_weight * self.action_l2 * tf.reduce_mean(tf.square(self.main.pi_tf / self.max_u)) #L2 loss on action values scaled by the same weight prm_loss_weight
-            self.pi_loss_tf += self.aux_loss_weight * self.cloning_loss_tf #adding the cloning loss to the actor loss as an auxilliary loss scaled by its weight aux_loss_weight
+        for nd in range(self.num_demo):       
 
-        elif self.bc_loss == 1 and self.q_filter == 0: # train with demonstrations without q_filter
-            self.cloning_loss_tf = tf.reduce_sum(tf.square(tf.boolean_mask((self.main.pi_tf), mask) - tf.boolean_mask((batch_tf['u']), mask)))
-            self.pi_loss_tf = -self.prm_loss_weight * tf.reduce_mean(self.main.Q_pi_tf)
-            self.pi_loss_tf += self.prm_loss_weight * self.action_l2 * tf.reduce_mean(tf.square(self.main.pi_tf / self.max_u))
-            self.pi_loss_tf += self.aux_loss_weight * self.cloning_loss_tf
+            ##A.R
+            ##Compute the target Q value, Q1과 Q2중에 min값을 사용한다.
 
-        else: #If  not training with demonstrations
-            self.pi_loss_tf = -tf.reduce_mean(self.main.Q_pi_tf)
-            self.pi_loss_tf += self.action_l2 * tf.reduce_mean(tf.square(self.main.pi_tf / self.max_u))
+            # target1_Q_pi_tf = self.target1.Q_pi_tf ##A.R policy training
+            # target2_Q_pi_tf = self.target2.Q_pi_tf ##A.R
+            # target_Q_pi_tf = tf.minimum(target1_Q_pi_tf, target2_Q_pi_tf)
+            target1_Q_tf = self.target1.Q_tf ##A.R policy training
+            target2_Q_tf = self.target2.Q_tf ##A.R
+            target_Q_tf = tf.minimum(target1_Q_tf, target2_Q_tf)
+            # print("{}///{}///{}".format(target1_Q_pi_tf,target2_Q_pi_tf,tf.minimum(target1_Q_pi_tf, target2_Q_pi_tf)))
+            ####
+            #TD3에서 빠진 코드 :target_Q = reward + (done * discount * target_Q).detach()(L109) ->L428에서 해주고 clip한다
 
-        Q_grads_tf = tf.gradients(self.Q_loss_tf, self._vars('main/Q'))
-        pi_grads_tf = tf.gradients(self.pi_loss_tf, self._vars('main/pi'))
-        assert len(self._vars('main/Q')) == len(Q_grads_tf)
-        assert len(self._vars('main/pi')) == len(pi_grads_tf)
-        self.Q_grads_vars_tf = zip(Q_grads_tf, self._vars('main/Q'))
-        self.pi_grads_vars_tf = zip(pi_grads_tf, self._vars('main/pi'))
-        self.Q_grad_tf = flatten_grads(grads=Q_grads_tf, var_list=self._vars('main/Q'))
-        self.pi_grad_tf = flatten_grads(grads=pi_grads_tf, var_list=self._vars('main/pi'))
+            # loss functions
+            # for policy training, Q_pi_tf = nn(input_Q, [self.hidden] * self.layers + [1])
+            # target_Q_pi_tf = self.target.Q_pi_tf #original code
+            clip_range = (-self.clip_return, 0. if self.clip_pos_returns else np.inf)
+            target_Q_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_tf, *clip_range)
+            # self.Q_loss_tf = tf.reduce_mean(tf.square(tf.stop_gradient(target_tf) - self.main.Q_tf))
+            ##
+            # current_Q1, current_Q2 = self.critic(state, action)
+
+            # for critic training, Q_tf = nn(input_Q, [self.hidden] * self.layers + [1], reuse=True)
+            # target_Q_pi_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_tf, *clip_range) #original code
+            
+            # self.Q_loss_tf = tf.reduce_mean(tf.square(tf.stop_gradient(target_tf) - self.main.Q_tf)) #critic taining 
+            
+            ## Get current Q estimates, for critic Q
+            current_Q1 = self.main.Q_tf ##A.R
+            current_Q2 = self.main.Q_tf
+            # print("Q1={}".format(current_Q1))
+
+            ## Compute critic loss
+            ## Torch => critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q) 
+            self.Q_loss_tf = tf.losses.mean_squared_error(current_Q1, target_Q_tf)+ tf.losses.mean_squared_error(current_Q2,target_Q_tf)
+            # self.Q_loss_tf = tf.losses.mean_squared_error(current_Q1, target_Q_tf)+ tf.losses.mean_squared_error(current_Q2,target_Q_tf)
+            # print("critic_loss ={}".format(self.Q_loss_tf))
+
+            Q_grads_tf = tf.gradients(self.Q_loss_tf, self._vars('main/Q'))
+            assert len(self._vars('main/Q')) == len(Q_grads_tf)
+
+            ## Optimize the critic 아담 옵티마이저
+            self.Q_adam = MpiAdam(self._vars('main/Q'), scale_grad_by_procs=False)
+            assert len(self._vars('main/Q')) == len(Q_grads_tf)
+            self.Q_grads_vars_tf = zip(Q_grads_tf, self._vars('main/Q'))
+            self.Q_grad_tf = flatten_grads(grads=Q_grads_tf, var_list=self._vars('main/Q'))
+
+            # ## Delayed policy updates
+            if nd % self.td3_policy_freq == 0:
+                # print("num_demo = {}".format(nd))
+                target1_Q_pi_tf = self.target1.Q_pi_tf ##A.R policy training
+                target2_Q_pi_tf = self.target2.Q_pi_tf ##A.R
+                target_Q_pi_tf = tf.minimum(target1_Q_pi_tf, target2_Q_pi_tf)
+
+                # target_Q_pi_tf = self.target.Q_pi_tf
+                clip_range = (-self.clip_return, 0. if self.clip_pos_returns else np.inf)
+                target_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_pi_tf, *clip_range)
+                self.Q_loss_tf = tf.reduce_mean(tf.square(tf.stop_gradient(target_tf) - self.main.Q_tf))
+                # Compute actor loss
+                if self.bc_loss ==1 and self.q_filter == 1 : # train with demonstrations and use bc_loss and q_filter both
+                    maskMain = tf.reshape(tf.boolean_mask(self.main.Q_tf > self.main.Q_pi_tf, mask), [-1]) #where is the demonstrator action better than actor action according to the critic? choose those samples only
+                    #define the cloning loss on the actor's actions only on the samples which adhere to the above masks
+                    self.cloning_loss_tf = tf.reduce_sum(tf.square(tf.boolean_mask(tf.boolean_mask((self.main.pi_tf), mask), maskMain, axis=0) - tf.boolean_mask(tf.boolean_mask((batch_tf['u']), mask), maskMain, axis=0)))
+                    self.pi_loss_tf = -self.prm_loss_weight * tf.reduce_mean(self.main.Q_pi_tf) #primary loss scaled by it's respective weight prm_loss_weight
+                    self.pi_loss_tf += self.prm_loss_weight * self.action_l2 * tf.reduce_mean(tf.square(self.main.pi_tf / self.max_u)) #L2 loss on action values scaled by the same weight prm_loss_weight
+                    self.pi_loss_tf += self.aux_loss_weight * self.cloning_loss_tf #adding the cloning loss to the actor loss as an auxilliary loss scaled by its weight aux_loss_weight
+
+                elif self.bc_loss == 1 and self.q_filter == 0: # train with demonstrations without q_filter
+                    self.cloning_loss_tf = tf.reduce_sum(tf.square(tf.boolean_mask((self.main.pi_tf), mask) - tf.boolean_mask((batch_tf['u']), mask)))
+                    self.pi_loss_tf = -self.prm_loss_weight * tf.reduce_mean(self.main.Q_pi_tf)
+                    self.pi_loss_tf += self.prm_loss_weight * self.action_l2 * tf.reduce_mean(tf.square(self.main.pi_tf / self.max_u))
+                    self.pi_loss_tf += self.aux_loss_weight * self.cloning_loss_tf
+
+                else: #If  not training with demonstrations
+                    self.pi_loss_tf = -tf.reduce_mean(self.main.Q_pi_tf)
+                    self.pi_loss_tf += self.action_l2 * tf.reduce_mean(tf.square(self.main.pi_tf / self.max_u))
+                # self.pi_loss_tf = -tf.reduce_mean(self.main.pi_tf) ## what about target1?
+                # self.pi_loss_tf += self.action_l2 * tf.reduce_mean(tf.square(self.main.pi_tf / self.max_u))
+                # actor_loss = -tf.reduce_mean(self.main.Q_tf)
+                # actor_loss += self.action_l2 * tf.reduce_mean(tf.square(self.main.Q_tf / self.max_u))
+
+                pi_grads_tf = tf.gradients(self.pi_loss_tf, self._vars('main/pi'))
+                assert len(self._vars('main/pi')) == len(pi_grads_tf)
+
+                # Optimize the actor 
+                # Q_grads_tf = tf.gradients(self.Q_loss_tf, self._vars('main/Q'))
+                self.pi_adam = MpiAdam(self._vars('main/pi'), scale_grad_by_procs=False)
+                assert len(self._vars('main/pi')) == len(pi_grads_tf)
+                self.pi_grads_vars_tf = zip(pi_grads_tf, self._vars('main/pi'))
+                self.pi_grad_tf = flatten_grads(grads=pi_grads_tf, var_list=self._vars('main/pi'))
+
+                # Update the frozen target models
+            ## torch code
+                # for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
+                #     target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+                
+
+                self.main_vars = self._vars('main/Q') + self._vars('main/pi')
+                self.target1_vars = self._vars('target1/Q') + self._vars('target1/pi') ##A.R
+                self.target2_vars = self._vars('target2/Q') + self._vars('target2/pi') ##A.R
+                if target_Q_pi_tf == target1_Q_pi_tf:
+                    target_vars = self.target1_vars
+                else:
+                    target_vars = self.target2_vars
+                # self.target_vars = self._vars('target/Q') + self._vars('target/pi') #original
+                self.stats_vars = self._global_vars('o_stats') + self._global_vars('g_stats')
+                self.init_target_net_op = list(
+                    map(lambda v: v[0].assign(v[1]), zip(self.target1_vars, self.main_vars)))
+                self.init_target_net_op = list(
+                    map(lambda v: v[0].assign(v[1]), zip(self.target2_vars, self.main_vars)))
+
+                self.update_target_net_op = list(
+                    map(lambda v: v[0].assign(self.polyak * v[0] + (1. - self.polyak) * v[1]), zip(target_vars, self.main_vars)))
+                self.update_target_net_op = list(
+                    map(lambda v: v[0].assign(self.polyak * v[0] + (1. - self.polyak) * v[1]), zip(target_vars, self.main_vars)))
+
+
+                tf.variables_initializer(self._global_vars('')).run()
+                self._sync_optimizers()
+                self._init_target_net()
+
+
+
+        # Q_grads_tf = tf.gradients(self.Q_loss_tf, self._vars('main/Q'))
+        # pi_grads_tf = tf.gradients(self.pi_loss_tf, self._vars('main/pi'))
+        # assert len(self._vars('main/Q')) == len(Q_grads_tf)
+        # assert len(self._vars('main/pi')) == len(pi_grads_tf)
+        # self.Q_grads_vars_tf = zip(Q_grads_tf, self._vars('main/Q'))
+        # self.pi_grads_vars_tf = zip(pi_grads_tf, self._vars('main/pi'))
+        # self.Q_grad_tf = flatten_grads(grads=Q_grads_tf, var_list=self._vars('main/Q'))
+        # self.pi_grad_tf = flatten_grads(grads=pi_grads_tf, var_list=self._vars('main/pi'))
 
         # optimizers
-        self.Q_adam = MpiAdam(self._vars('main/Q'), scale_grad_by_procs=False)
-        self.pi_adam = MpiAdam(self._vars('main/pi'), scale_grad_by_procs=False)
+        # self.Q_adam = MpiAdam(self._vars('main/Q'), scale_grad_by_procs=False)
+        # self.pi_adam = MpiAdam(self._vars('main/pi'), scale_grad_by_procs=False)
 
         # polyak averaging
-        self.main_vars = self._vars('main/Q') + self._vars('main/pi')
-        self.target_vars = self._vars('target/Q') + self._vars('target/pi')
-        self.stats_vars = self._global_vars('o_stats') + self._global_vars('g_stats')
-        self.init_target_net_op = list(
-            map(lambda v: v[0].assign(v[1]), zip(self.target_vars, self.main_vars)))
-        self.update_target_net_op = list(
-            map(lambda v: v[0].assign(self.polyak * v[0] + (1. - self.polyak) * v[1]), zip(self.target_vars, self.main_vars)))
+        # self.main_vars = self._vars('main/Q') + self._vars('main/pi')
+        # self.target1_vars = self._vars('target1/Q') + self._vars('target1/pi') ##A.R
+        # self.target2_vars = self._vars('target2/Q') + self._vars('target2/pi') ##A.R
+        # # self.target_vars = self._vars('target/Q') + self._vars('target/pi') #original
+        # self.stats_vars = self._global_vars('o_stats') + self._global_vars('g_stats')
+        # self.init_target1_net_op = list(
+        #     map(lambda v: v[0].assign(v[1]), zip(self.target1_vars, self.main_vars)))
+        # self.init_target2_net_op = list(
+        #     map(lambda v: v[0].assign(v[1]), zip(self.target2_vars, self.main_vars)))
 
-        # initialize all variables
-        tf.variables_initializer(self._global_vars('')).run()
-        self._sync_optimizers()
-        self._init_target_net()
+
+            
+        # self.update_target_net_op = list(
+        #     map(lambda v: v[0].assign(self.polyak * v[0] + (1. - self.polyak) * v[1]), zip(self.target_vars, self.main_vars)))
+
+        #original
+        # self.init_target_net_op = list(
+        #     map(lambda v: v[0].assign(v[1]), zip(self.target_vars, self.main_vars)))
+        # self.update_target_net_op = list(
+        #     map(lambda v: v[0].assign(self.polyak * v[0] + (1. - self.polyak) * v[1]), zip(self.target_vars, self.main_vars)))
+
+        # # initialize all variables
+        # tf.variables_initializer(self._global_vars('')).run()
+        # self._sync_optimizers()
+        # self._init_target_net()
 
     def logs(self, prefix=''):
         logs = []
@@ -419,7 +578,8 @@ class DDPG(object):
         """Our policies can be loaded from pkl, but after unpickling you cannot continue training.
         """
         excluded_subnames = ['_tf', '_op', '_vars', '_adam', 'buffer', 'sess', '_stats',
-                             'main', 'target', 'lock', 'env', 'sample_transitions',
+                            #  'main', 'target', 'lock', 'env', 'sample_transitions', #original code
+                            'main', 'target1', 'target2', 'lock', 'env', 'sample_transitions',
                              'stage_shapes', 'create_actor_critic']
 
         state = {k: v for k, v in self.__dict__.items() if all([not subname in k for subname in excluded_subnames])}

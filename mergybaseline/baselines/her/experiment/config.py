@@ -52,6 +52,11 @@ DEFAULT_PARAMS = {
     'demo_batch_size': 128, #number of samples to be used from the demonstrations buffer, per mpi thread 128/1024 or 32/256
     'prm_loss_weight': 0.001, #Weight corresponding to the primary loss
     'aux_loss_weight':  0.0078, #Weight corresponding to the auxilliary loss also called the cloning loss
+    
+    #Added by A.R for Td3
+    'td3_policy_freq': 2,
+    'td3_policy_noise': 0.0,
+    'td3_noise_clip': 0.5
 }
 
 
@@ -176,6 +181,10 @@ def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
                         'demo_batch_size': params['demo_batch_size'],
                         'prm_loss_weight': params['prm_loss_weight'],
                         'aux_loss_weight': params['aux_loss_weight'],
+                        
+                        'td3_policy_freq': params['td3_policy_freq'], ##
+                        'td3_policy_noise': params['td3_policy_noise'], ##
+                        'td3_noise_clip': params['td3_noise_clip'] ##
                         })
     ddpg_params['info'] = {
         'env_name': params['env_name'],
@@ -188,7 +197,7 @@ def configure_dims(params):
     env = cached_make_env(params['make_env'])
     env.reset()
     obs, _, _, info = env.step(env.action_space.sample())
-
+    # print("################observation high : {}/{}".format(max(obs['observation']),min(obs['observation'])))
     dims = {
         'o': obs['observation'].shape[0],
         'u': env.action_space.shape[0],

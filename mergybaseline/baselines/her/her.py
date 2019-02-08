@@ -31,7 +31,7 @@ def train(*, env_name, policy, rollout_worker, evaluator,
         best_policy_path = os.path.join(save_path, 'policy_best.pkl')
         periodic_policy_path = os.path.join(save_path, 'policy_{}.pkl')
 
-    logger.info("Training...")
+    logger.info("Debug @ basemerge : Training...")
     best_success_rate = -1
 
     if policy.bc_loss == 1: policy.init_demo_buffer(demo_file) #initialize demo buffer if training with demonstrations
@@ -59,7 +59,11 @@ def train(*, env_name, policy, rollout_worker, evaluator,
         logger.record_tabular('epoch', epoch)
         for key, val in evaluator.logs('test'):
             logger.record_tabular(key, mpi_average(val))
-        for key, val in rollout_worker.logs('train'):
+        # for key, val in rollout_worker.logs('train'): ##original
+        #     logger.record_tabular(key, mpi_average(val))
+        for key, val in rollout_worker.logs('train1'): ##A.R
+            logger.record_tabular(key, mpi_average(val))
+        for key, val in rollout_worker.logs('train2'): ##A.R
             logger.record_tabular(key, mpi_average(val))
         for key, val in policy.logs():
             logger.record_tabular(key, mpi_average(val))
@@ -102,7 +106,7 @@ def learn(*, network, env, total_timesteps,
     **kwargs
 ):
     
-    print("-------------------JW Debug @ her.py ----------------------")
+    print("-------------------JW Debug @ her.py with baseline merge ----------------------")
     override_params = override_params or {}
     if MPI is not None:
         rank = MPI.COMM_WORLD.Get_rank()
@@ -116,7 +120,6 @@ def learn(*, network, env, total_timesteps,
     params = config.DEFAULT_PARAMS
     env_name = env.specs[0].id
     params['env_name'] = env_name
-    print(env_name)
     print(env_name)
     
     params['replay_strategy'] = replay_strategy

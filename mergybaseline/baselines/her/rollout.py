@@ -86,9 +86,13 @@ class RolloutWorker:
             o_new = np.empty((self.rollout_batch_size, self.dims['o']))
             ag_new = np.empty((self.rollout_batch_size, self.dims['g']))
             success = np.zeros(self.rollout_batch_size)
+            # print("Rollout. o_new={}, ag_new={},success={}".format(o_new,ag_new,success))
             # compute new states and observations
             obs_dict_new, _, done, info = self.venv.step(u)
+            # print("HERE")
+            # print("#########Debug##########")
             o_new = obs_dict_new['observation']
+            # print("observation high : {}".format(o_new))
             ag_new = obs_dict_new['achieved_goal']
             success = np.array([i.get('is_success', 0.0) for i in info])
 
@@ -109,6 +113,7 @@ class RolloutWorker:
 
             dones.append(done)
             obs.append(o.copy())
+            # print("############## obs = {}".format(obs))
             achieved_goals.append(ag.copy())
             successes.append(success.copy())
             acts.append(u.copy())
