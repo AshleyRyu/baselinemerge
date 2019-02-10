@@ -407,6 +407,7 @@ class DDPG(object):
             # target_Q_pi_tf = tf.minimum(target1_Q_pi_tf, target2_Q_pi_tf)
             target1_Q_tf = self.target1.Q_tf ##A.R policy training
             target2_Q_tf = self.target2.Q_tf ##A.R
+            # print('target1={}/////target2={}'.format(target1_Q_tf,target2_Q_tf))
             target_Q_tf = tf.minimum(target1_Q_tf, target2_Q_tf)
             # print("{}///{}///{}".format(target1_Q_pi_tf,target2_Q_pi_tf,tf.minimum(target1_Q_pi_tf, target2_Q_pi_tf)))
             ####
@@ -451,6 +452,9 @@ class DDPG(object):
                 # print("num_demo = {}".format(nd))
                 target1_Q_pi_tf = self.target1.Q_pi_tf ##A.R policy training
                 target2_Q_pi_tf = self.target2.Q_pi_tf ##A.R
+                tf.print(target1_Q_pi_tf, [target1_Q_pi_tf])
+                tf.print(target2_Q_pi_tf, [target2_Q_pi_tf])
+                # print(target2_Q_pi_tf)
                 target_Q_pi_tf = tf.minimum(target1_Q_pi_tf, target2_Q_pi_tf)
 
                 # target_Q_pi_tf = self.target.Q_pi_tf
