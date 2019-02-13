@@ -320,10 +320,13 @@ class DDPG(object):
         return critic_loss, actor_loss
 
     def _init_target_net(self):
-        self.sess.run(self.init_target_net_op)
+        self.sess.run(self.init_target1_net_op)
+        self.sess.run(self.init_target2_net_op)
 
     def update_target_net(self):
         self.sess.run(self.update_target_net_op)
+        self.sess.run(self.update_target1_net_op)
+        self.sess.run(self.update_target2_net_op)
 
     def clear_buffer(self):
         self.buffer.clear_buffer()
@@ -369,6 +372,7 @@ class DDPG(object):
                 vs.reuse_variables()
             self.main = self.create_actor_critic(batch_tf, net_type='main', **self.__dict__)
             vs.reuse_variables()
+            print("tf.variable_scope(main) = {}".format(tf.variable_scope('target1')))
 
         with tf.variable_scope('target1') as vs:
             if reuse:
@@ -380,7 +384,7 @@ class DDPG(object):
                 target1_batch_tf, net_type='target1', **self.__dict__)
             vs.reuse_variables()
             print("tf.variable_scope(target1) = {}".format(tf.variable_scope('target1')))
-            print("batch= {}".format(target1_batch_tf))
+            # print("batch= {}".format(target1_batch_tf))
             # print(type('target')) #<class 'baselines.her.actor_critic.ActorCritic'>
         assert len(self._vars("main")) == len(self._vars("target1"))
 
@@ -509,14 +513,16 @@ class DDPG(object):
                     target_vars = self.target2_vars
                 # self.target_vars = self._vars('target/Q') + self._vars('target/pi') #original
                 self.stats_vars = self._global_vars('o_stats') + self._global_vars('g_stats')
-                self.init_target_net_op = list(
+                self.init_target1_net_op = list(
                     map(lambda v: v[0].assign(v[1]), zip(self.target1_vars, self.main_vars)))
-                self.init_target_net_op = list(
+                self.init_target2_net_op = list(
                     map(lambda v: v[0].assign(v[1]), zip(self.target2_vars, self.main_vars)))
 
                 self.update_target_net_op = list(
                     map(lambda v: v[0].assign(self.polyak * v[0] + (1. - self.polyak) * v[1]), zip(target_vars, self.main_vars)))
-                self.update_target_net_op = list(
+                self.update_target1_net_op = list(
+                    map(lambda v: v[0].assign(self.polyak * v[0] + (1. - self.polyak) * v[1]), zip(target_vars, self.main_vars)))
+                self.update_target2_net_op = list(
                     map(lambda v: v[0].assign(self.polyak * v[0] + (1. - self.polyak) * v[1]), zip(target_vars, self.main_vars)))
 
 

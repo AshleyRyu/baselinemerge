@@ -29,6 +29,7 @@ class ActorCritic:
         o = self.o_stats.normalize(self.o_tf)
         g = self.g_stats.normalize(self.g_tf)
         input_pi = tf.concat(axis=1, values=[o, g])  # for actor
+        # actor 는 폴리시를 근사하는 세타를 업데이트 한다.
 
         # Networks.
         with tf.variable_scope('pi'):

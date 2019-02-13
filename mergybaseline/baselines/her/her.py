@@ -120,7 +120,7 @@ def learn(*, network, env, total_timesteps,
     params = config.DEFAULT_PARAMS
     env_name = env.specs[0].id
     params['env_name'] = env_name
-    print(env_name)
+    # print(env_name)
     
     params['replay_strategy'] = replay_strategy
     if env_name in config.DEFAULT_ENV_PARAMS:
