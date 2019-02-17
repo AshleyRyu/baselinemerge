@@ -8,8 +8,8 @@ from mpi4py import MPI
 from baselines import logger
 from baselines.common import set_global_seeds, tf_util
 from baselines.common.mpi_moments import mpi_moments
-import baselines.her.experiment.config as config
-from baselines.her.rollout import RolloutWorker
+import baselines.her_hrl.experiment.config as config
+from baselines.her_hrl.rollout import RolloutWorker
 
 import gym #jw
 
@@ -106,7 +106,7 @@ def learn(*, network, env, total_timesteps,
     **kwargs
 ):
     
-    print("-------------------JW Debug @ her.py with hrl baseline merge ----------------------")
+    print("-------------------JW Debug @ her_hrl.py with baseline merge ----------------------")
     override_params = override_params or {}
     if MPI is not None:
         rank = MPI.COMM_WORLD.Get_rank()
@@ -160,9 +160,6 @@ def learn(*, network, env, total_timesteps,
         'use_demo_states': True,
         'compute_Q': False,
         'T': params['T'],
-        ############hrl################
-
-        ###############################
     }
 
     eval_params = {
@@ -184,7 +181,6 @@ def learn(*, network, env, total_timesteps,
 
     n_cycles = params['n_cycles']
     n_epochs = total_timesteps // n_cycles // rollout_worker.T // rollout_worker.rollout_batch_size
-    print("#######################################n_epoch = {}".format(n_epochs))
 
     return train(
         save_path=save_path, 
