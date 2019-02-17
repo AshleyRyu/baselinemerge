@@ -39,6 +39,9 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         # Replace goal with achieved goal but only for the previously-selected
         # HER transitions (as defined by her_indexes). For the other transitions,
         # keep the original goal.
+        # 목표를 달성된 목표로 대체하되 이전에 선택한 HER transitions(her_indexes에 의해 정의됨)
+        # 에 대해서만 대체한다. 다른 transitions의 경우 원래 목표를 유지한다.
+        
         future_ag = episode_batch['ag'][episode_idxs[her_indexes], future_t]
         transitions['g'][her_indexes] = future_ag
 

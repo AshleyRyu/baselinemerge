@@ -106,6 +106,7 @@ class DDPG(object):
 
         # Configure the replay buffer.
         buffer_shapes = {key: (self.T-1 if key != 'o' else self.T, *input_shapes[key]) 
+        # origin : buffer_shapes = {key: (self.T-1 if key != 'o' else self.T, *input_shapes[key]) 
         # buffer_shapes = {key: (self.T-1 if key != 'o' and key != 'o1' else self.T, *input_shapes[key]) #A.Rㅇ
                          for key, val in input_shapes.items()}
         buffer_shapes['g'] = (buffer_shapes['g'][0], self.dimg)
