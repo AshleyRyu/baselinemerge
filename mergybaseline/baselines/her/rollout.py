@@ -225,6 +225,9 @@ import pickle
 
 from baselines.her.util import convert_episode_to_batch_major, store_args
 
+## from run_HAC.py
+TEST_FREQ = 2
+num_test_episodes = 100
 
 class RolloutWorker:
 
@@ -329,6 +332,7 @@ class RolloutWorker:
                 noise_eps=self.noise_eps if not self.exploit else 0.,
                 random_eps=self.random_eps if not self.exploit else 0.,
                 use_target_net=self.use_target_net)
+                # FLAGS=FLAGS)
             
 
             # policy_output = self.policy.get_actions(
@@ -340,19 +344,19 @@ class RolloutWorker:
 
             ## from run_HAC.py
             # Determine training mode.  If not testing and not solely training, interleave training and testing to track progress
-            mix_train_test = False
-            if not FLAGS.test and not FLAGS.train_only:
-                mix_train_test = True
+            # mix_train_test = False
+            # if not FLAGS.test and not FLAGS.train_only:
+            #     mix_train_test = True
 
             ## from run_HAC.py, 이 뒤로 다 indentation해줌
             # Evaluate policy every TEST_FREQ batches if interleaving training and testing
-            if mix_train_test and batch % TEST_FREQ == 0:
-                print("\n--- HAC TESTING ---")
-                agent.FLAGS.test = True
-                num_episodes = num_test_episodes            
+            # if mix_train_test and t % TEST_FREQ == 0:
+            #     print("\n--- HAC TESTING ---")
+            #     # agent.FLAGS.test = True ## agent를 인스턴스로 받아야하나 ㅡㅡ
+            #     num_episodes = num_test_episodes            
 
-                # Reset successful episode counter
-                successful_episodes = 0
+            #     # Reset successful episode counter
+            #     successful_episodes = 0
 
             if self.compute_Q:
                 u, Q = policy_output

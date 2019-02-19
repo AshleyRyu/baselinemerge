@@ -327,7 +327,7 @@ class Layer():
             # If next layer is not bottom level, propose subgoal for next layer to achieve and determine whether that subgoal should be tested
             if self.layer_number > 0:
 
-                agent.goal_array[self.layer_number - 1] = action
+                agent.goal_array[self.layer_number - 1] = action ## 액션을 그냥 골로 만들어줌?
 
                 goal_status, max_lay_achieved = agent.layers[self.layer_number - 1].train(agent, env, next_subgoal_test, episode_num)
 

@@ -24,7 +24,8 @@ import sys
 sys.path.insert(0, 'baselines/her/experiment')
 import config
 
-def design_agent_and_env(FLAGS, env, dims, params, clip_return):
+def design_agent_and_env(FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params): 
+# def design_agent_and_env(FLAGS, env, dims, params, clip_return): ## 원래
 
     # self.dims = dims
     # self.params = params
@@ -93,8 +94,8 @@ def design_agent_and_env(FLAGS, env, dims, params, clip_return):
     # # Provide end goal space.  The code supports two types of end goal spaces if user would like to train on a larger end goal space.  If user needs to make additional customizations to the end goals, the "get_next_goal" method in "environment.py" can be updated. 
 
     # # In the UR5 reacher environment, the end goal will be the desired joint positions for the 3 main joints.
-    # goal_space_train = [[-np.pi,np.pi],[-np.pi/4,0],[-np.pi/4,np.pi/4]]
-    # goal_space_test = [[-np.pi,np.pi],[-np.pi/4,0],[-np.pi/4,np.pi/4]]
+    goal_space_train = [[-np.pi,np.pi],[-np.pi/4,0],[-np.pi/4,np.pi/4]]
+    goal_space_test = [[-np.pi,np.pi],[-np.pi/4,0],[-np.pi/4,np.pi/4]]
 
 
     # # Provide a function that maps from the state space to the end goal space.  This is used to determine whether the agent should be given the sparse reward.  It is also used for Hindsight Experience Replay to determine which end goal was achieved after a sequence of actions.
@@ -176,8 +177,16 @@ def design_agent_and_env(FLAGS, env, dims, params, clip_return):
     # env = Environment(model_name, goal_space_train, goal_space_test, project_state_to_end_goal, end_goal_thresholds, initial_state_space, subgoal_bounds, project_state_to_subgoal, subgoal_thresholds, max_actions, timesteps_per_action, FLAGS.show)
     # env = 
 
-    # agent = Agent(FLAGS,env,agent_params)
-    policy = Agent(FLAGS, env, agent_params, dims, params, clip_return).policy
+    # DEBUG : FLAG=Namespace(layers=3, retrain=True, show=False, test=False, time_scale=10, train_only=False, verbose=False)
+    FLAGS.retrain=True
+    FLAGS.show=False
+    FLAGS.test=False
+    FLAGS.train_only=False
+    FLAGS.verbose=False
+    print("FLAGS = {}".format(FLAGS))
+    # rollout_worker = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
+    agent = Agent(FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params)
+    # policy = Agent(FLAGS, env, agent_params, dims, params, clip_return).policy
     # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
         
     

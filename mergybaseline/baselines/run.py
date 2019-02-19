@@ -189,6 +189,7 @@ def parse_cmdline_kwargs(args):
 
 
 
+# def main(args, FLAGS): ##
 def main(args):
     # configure logger, disable logging in child MPI processes (with rank > 0)
 
@@ -223,6 +224,7 @@ def main(args):
             if state is not None:
                 actions, _, state, _ = model.step(obs,S=state, M=dones)
             else:
+                # actions, _, _, _ = model.step(obs, FLAGS)
                 actions, _, _, _ = model.step(obs)
 
             obs, _, done, _ = env.step(actions)

@@ -24,9 +24,11 @@ def mpi_average(value):
     return mpi_moments(np.array(value))[0]
 
 
-def train(*, env_name, policy, rollout_worker, evaluator,
+# def train(*, env_name, policy, rollout_worker, evaluator,
+def train(*, env_name, policy, agent, evaluator,
           n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval,
-          save_path, demo_file, **kwargs):
+          save_path, demo_file, FLAGS, **kwargs):
+        #   save_path, demo_file, **kwargs):
     rank = MPI.COMM_WORLD.Get_rank()
     
     if save_path:
@@ -43,8 +45,11 @@ def train(*, env_name, policy, rollout_worker, evaluator,
     for epoch in range(n_epochs):
         # train
         rollout_worker.clear_history()
+        rollout_worker.clear_history()
         for _ in range(n_cycles):
-            episode = rollout_worker.generate_rollouts()
+            episode = rollout_worker.generate_rollouts(FLAGS)
+            # episode = rollout_worker.generate_rollouts(FLAGS) ##
+            # episode = rollout_worker.generate_rollouts()
             policy.store_episode(episode)
             for _ in range(n_batches):
                 policy.train()
@@ -56,7 +61,7 @@ def train(*, env_name, policy, rollout_worker, evaluator,
         # test
         evaluator.clear_history()
         for _ in range(n_test_rollouts):
-            evaluator.generate_rollouts()
+            evaluator.generate_rollouts(FLAGS)
 
         # record logs 여기서 찍는다
         logger.record_tabular('epoch', epoch)
@@ -157,11 +162,12 @@ def learn(*, network, env, total_timesteps, ### 4
     dims = config.configure_dims(params)
     # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
         
-    # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return) # 이걸 어떻게 해야해!
     #===============================#
     FLAGS = parse_options() ## Prepare params for HAC.
-    
-    policy = design_agent_and_env(FLAGS, env, dims=dims, params=params, clip_return=clip_return) ## make agent(TD3) for HAC.
+    policy = config.configure_ddpg(FLAGS, dims=dims, params=params, clip_return=clip_return) # 이걸 어떻게 해야해!
+
+    # agent = design_agent_and_env(FLAGS, env, dims=dims, params=params, clip_return=clip_return) ## make agent(TD3) for HAC.
+    # policy = design_agent_and_env(FLAGS, env, dims=dims, params=params, clip_return=clip_return) ## make agent(TD3) for HAC.
     #===============================#
     if load_path is not None:
         tf_util.load_variables(load_path)
@@ -191,11 +197,16 @@ def learn(*, network, env, total_timesteps, ### 4
 
     eval_env = eval_env or env
 
-    rollout_worker = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
-    ##
-    rollout_worker_high = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
-    ##
-    evaluator = RolloutWorker(eval_env, policy, dims, logger, **eval_params) ## 뭐하는 놈임
+    ## Done with prepare
+    # run_HAC(FLAGS, agent)
+    # agent = design_agent_and_env(FLAGS, env, dims=dims, params=params, clip_return=clip_return) ## 원래거
+    agent = design_agent_and_env(FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params)
+
+    # rollout_worker = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
+    # ##
+    # # rollout_worker_high = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
+    # ##
+    # evaluator = RolloutWorker(eval_env, policy, dims, logger, **eval_params) ## 뭐하는 놈임
 
     n_cycles = params['n_cycles']
     n_epochs = total_timesteps // n_cycles // rollout_worker.T // rollout_worker.rollout_batch_size
@@ -207,7 +218,7 @@ def learn(*, network, env, total_timesteps, ### 4
         policy=policy, rollout_worker=rollout_worker,
         evaluator=evaluator, n_epochs=n_epochs, n_test_rollouts=params['n_test_rollouts'],
         n_cycles=params['n_cycles'], n_batches=params['n_batches'],
-        policy_save_interval=policy_save_interval, demo_file=demo_file)
+        policy_save_interval=policy_save_interval, demo_file=demo_file, FLAGS=FLAGS)
 
 
 @click.command()

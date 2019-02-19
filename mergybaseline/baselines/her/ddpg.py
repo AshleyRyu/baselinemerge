@@ -21,13 +21,13 @@ global DEMO_BUFFER #buffer for demonstrations
 
 class DDPG(object):
     @store_args
-    def __init__(self, input_dims, buffer_size, hidden, layers, network_class, polyak, batch_size,
+    def __init__(self, FLAGS, input_dims, buffer_size, hidden, layers, network_class, polyak, batch_size,
                  Q_lr, pi_lr, norm_eps, norm_clip, max_u, action_l2, clip_obs, scope, T,
                  rollout_batch_size, subtract_goals, relative_goals, clip_pos_returns, clip_return,
                  bc_loss, q_filter, num_demo, demo_batch_size, prm_loss_weight, aux_loss_weight,
                  
                 #  sample_transitions, gamma, reuse=False, **kwargs):
-                 sample_transitions, gamma, td3_policy_freq, td3_policy_noise, td3_noise_clip,  reuse=False, *agent_params, **kwargs): ##
+                 sample_transitions, gamma, td3_policy_freq, td3_policy_noise, td3_noise_clip, reuse=False, *agent_params, **kwargs): ##
         """Implementation of DDPG that is used in combination with Hindsight Experience Replay (HER).
             Added functionality to use demonstrations for training to Overcome exploration problem.
 
@@ -83,6 +83,9 @@ class DDPG(object):
         self.td3_policy_noise = td3_policy_noise
         self.td3_noise_clip = td3_noise_clip
 
+        ## for HAC
+        self.FLAGS = FLAGS
+
         # Prepare staging area for feeding data to the model.
         stage_shapes = OrderedDict()
         for key in sorted(self.input_dims.keys()):
@@ -120,10 +123,10 @@ class DDPG(object):
         global DEMO_BUFFER
         DEMO_BUFFER = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions) #initialize the demo buffer; in the same way as the primary data buffer
         # self.meta_controller = DDPG(self.dimo + self.dimg, self.dimo, self.clip_obs)
-        ##
-        self.low_replay_buffer = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions)
-        self.high_replay_buffer = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions)
-        ##
+        # ##
+        # self.low_replay_buffer = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions)
+        # self.high_replay_buffer = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions)
+        # ##
 
     def _random_action(self, n):
         return np.random.uniform(low=-self.max_u, high=self.max_u, size=(n, self.dimu))
@@ -147,19 +150,22 @@ class DDPG(object):
         # return o, o1, g
         return o, g
 
-    def step(self, obs):
+    def step(self, obs, FLAGS):
+        # FLAGS = FLAGS
         actions = self.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'])
+        # actions = self.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'], FLAGS)
         # print("for debug, obs : {}".format(obs['observation']))
         return actions, None, None, None
 
 
     # def get_actions(self, o, o1, ag, g, noise_eps=0., random_eps=0., use_target_net=False, ##o1이 target 네트워크
     def get_actions(self, o, ag, g, noise_eps=0., random_eps=0., use_target_net=False,
+    # def get_actions(self, o, ag, g, FLAGS, noise_eps=0., random_eps=0., use_target_net=False,
                     compute_Q=False):
         # o, o1, g = self._preprocess_og(o, o1, ag, g) ##
         
         o, g = self._preprocess_og(o, ag, g) 
-        policy = self.target if use_target_net else self.main
+        policy = self.target if use_target_net else self.main # rollout.py에서 넘어온다.
         # values to compute
         vals = [policy.pi_tf]
         
@@ -168,7 +174,6 @@ class DDPG(object):
         # feed
         feed = {
             policy.o_tf: o.reshape(-1, self.dimo),
-            # policy.o1_tf: o1.reshape(-1, self.dimo), ##
             policy.g_tf: g.reshape(-1, self.dimg),
             policy.u_tf: np.zeros((o.size // self.dimo, self.dimu), dtype=np.float32)
         }
@@ -452,13 +457,15 @@ class DDPG(object):
             ##A.R
             ##Compute the target Q value, Q1과 Q2중에 min값을 사용한다.
 
-            # target1_Q_pi_tf = self.target1.Q_pi_tf ##A.R policy training
-            # target2_Q_pi_tf = self.target2.Q_pi_tf ##A.R
+            target1_Q_pi_tf = self.target1.Q_pi_tf ##A.R policy training
+            target2_Q_pi_tf = self.target2.Q_pi_tf ##A.R
             # target_Q_pi_tf = tf.minimum(target1_Q_pi_tf, target2_Q_pi_tf)
-            target1_Q_tf = self.target1.Q_tf ##A.R policy training
-            target2_Q_tf = self.target2.Q_tf ##A.R
+            # target1_Q_tf = self.target1.Q_tf ##A.R policy training
+            # target2_Q_tf = self.target2.Q_tf ##A.R
             # print('target1={}/////target2={}'.format(target1_Q_tf,target2_Q_tf))
-            target_Q_tf = tf.minimum(target1_Q_tf, target2_Q_tf)
+            target_Q_pi_tf = tf.minimum(target1_Q_pi_tf, target2_Q_pi_tf)
+            # target_Q_tf = tf.minimum(target1_Q_tf, target2_Q_tf) ## 대체 코드
+
             # print("{}///{}///{}".format(target1_Q_pi_tf,target2_Q_pi_tf,tf.minimum(target1_Q_pi_tf, target2_Q_pi_tf)))
             ####
             #TD3에서 빠진 코드 :target_Q = reward + (done * discount * target_Q).detach()(L109) ->L428에서 해주고 clip한다
@@ -467,7 +474,8 @@ class DDPG(object):
             # for policy training, Q_pi_tf = nn(input_Q, [self.hidden] * self.layers + [1])
             # target_Q_pi_tf = self.target.Q_pi_tf #original code
             clip_range = (-self.clip_return, 0. if self.clip_pos_returns else np.inf)
-            target_Q_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_tf, *clip_range)
+            target_Q_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_pi_tf, *clip_range)
+            # target_Q_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_tf, *clip_range) ## 대체 코드
             # self.Q_loss_tf = tf.reduce_mean(tf.square(tf.stop_gradient(target_tf) - self.main.Q_tf))
             ##
             # current_Q1, current_Q2 = self.critic(state, action)

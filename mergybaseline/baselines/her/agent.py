@@ -17,7 +17,9 @@ import config
 #
 # Below class instantiates an agent
 class Agent():
-    def __init__(self, FLAGS, env, agent_params, dims, params, clip_return):
+    ## self, FLAGS, env, agent_params, dims, params, clip_return 원래 input
+    ## FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params
+    def __init__(self, FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params):
 
         self.FLAGS = FLAGS
         self.sess = tf.Session()
@@ -26,7 +28,7 @@ class Agent():
         self.subgoal_test_perc = agent_params["subgoal_test_perc"]
 
         # Create agent with number of levels specified by user       
-        self.layers = [Layer(i,FLAGS,env,self.sess,agent_params) for i in range(FLAGS.layers)]        
+        self.layers = [Layer(i,FLAGS,env,self.sess,agent_params, policy, dims, logger, monitor, **rollout_params, **eval_params) for i in range(FLAGS.layers)]        
 
         # Below attributes will be used help save network parameters
         self.saver = None
@@ -54,8 +56,11 @@ class Agent():
 
         # return 
 
-        # ##
-        self.policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
+        # ## (FLAGS, env, dims, params, clip_return):
+
+        # 원래 있던 코드지만, layer마다 DDPG 에이전트 만들어주기위해 layer.py로 넘겼다.
+        # self.policy = config.configure_ddpg(params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params, dims=dims)
+        
         # # policy = 1
         # return policy
         # ##
@@ -146,15 +151,16 @@ class Agent():
 
        
     # Train agent for an episode
-    def train(self,env, episode_num):
+    def train(self, env, episode_num):
 
         # Select final goal from final goal space, defined in "design_agent_and_env.py" 
         self.goal_array[self.FLAGS.layers - 1] = env.get_next_goal(self.FLAGS.test)
         print("Next End Goal: ", self.goal_array[self.FLAGS.layers - 1])
 
         # Select initial state from in initial state space, defined in environment.py
-        self.current_state = env.reset_sim()
-        # print("Initial State: ", self.current_state)
+        # self.current_state = env.reset_sim()
+        self.current_state = env.reset()
+        print("Initial State: ", self.current_state)
 
         # Reset step counter
         self.steps_taken = 0
@@ -164,7 +170,7 @@ class Agent():
 
         # Update actor/critic networks if not testing
         if not self.FLAGS.test:
-            self.learn()
+            self.learn() # 각 layer learn @layer.py
 
         # Return whether end goal was achieved
         return goal_status[self.FLAGS.layers-1]

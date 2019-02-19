@@ -11,8 +11,9 @@ from baselines.bench.monitor import Monitor
 import sys
 sys.path.insert(0, 'baselines/her')
 import design_agent_and_env
+from layer import Layer
 # from baselines.her.design_agent_and_env import design_agent_and_env
-from baselines.her.layer import Layer
+# from baselines.her.layer import Layer
 ##
 
 DEFAULT_ENV_PARAMS = {
@@ -199,7 +200,8 @@ def simple_goal_subtract(a, b):
 #     policy = DDPG(reuse=reuse, **ddpg_params, use_mpi=use_mpi) 
 #     return {}
 
-def configure_ddpg(dims, params, FLAGS, agent_params, reuse=False, use_mpi=True, clip_return=True):##
+#configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
+def configure_ddpg(params, FLAGS, agent_params, dims, reuse=False, use_mpi=True, clip_return=True):##
 
     sample_her_transitions = configure_her(params)
     # Extract relevant parameters.
@@ -208,6 +210,9 @@ def configure_ddpg(dims, params, FLAGS, agent_params, reuse=False, use_mpi=True,
     ddpg_params = params['ddpg_params']
 
     input_dims = dims.copy()
+
+    # print("DEBUG, ddpg_params={}".format(params))
+    print("DEBUG, input_dims={}".format(input_dims))
 
 
     # DDPG agent -> TD3 agent
@@ -250,7 +255,8 @@ def configure_ddpg(dims, params, FLAGS, agent_params, reuse=False, use_mpi=True,
     
     # layers = [Layer(i,FLAGS,env, sess,agent_params) for i in range(FLAGS.layers)]
     # goal_array = [None for i in range(FLAGS.layers)]
-    policy = DDPG(reuse=reuse, **ddpg_params, **agent_params, use_mpi=use_mpi) ##policy라는 DDPG instance를 생성
+    # reuse=reuse, **ddpg_params, use_mpi=use_mpi
+    policy = DDPG(FLAGS, reuse=reuse, **agent_params, **ddpg_params, use_mpi=use_mpi) ##policy라는 DDPG instance를 생성
     return policy
 
 

@@ -7,10 +7,15 @@ from time import sleep
 from baselines.her.ddpg import DDPG
 from baselines.her.replay_buffer import ReplayBuffer
 from baselines.her.actor_critic import ActorCritic
+from baselines.her.rollout import RolloutWorker
 
+import sys
+sys.path.insert(0, 'baselines/her/experiment')
+import config
 
 class Layer():
-    def __init__(self, layer_number, FLAGS, env, sess, agent_params):
+    def __init__(self, layer_number, FLAGS, env, sess, agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params):
+    # def __init__(self, layer_number, FLAGS, env, sess, agent_params): ## 원래
         self.layer_number = layer_number
         self.FLAGS = FLAGS
         self.sess = sess
@@ -52,6 +57,11 @@ class Layer():
         self.temp_goal_replay_storage = []
 
         # Initialize actor and critic networks -> DDPG에서 만들어줌
+
+        ## from rollout.py
+        rollout_worker = RolloutWorker(eval_env, policy, dims, logger, monitor=True, **rollout_params)
+        evaluator = RolloutWorker(eval_env, policy, dims, logger, **eval_params)
+        # self.policy = config.configure_ddpg(params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params, dims=dims)
         # self.actor = Actor(sess, env, self.batch_size, self.layer_number, FLAGS)
         # self.critic = Critic(sess, env, self.layer_number, FLAGS)
 
