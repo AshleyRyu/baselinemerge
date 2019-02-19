@@ -5,10 +5,12 @@ import pickle as cpickle
 import tensorflow as tf
 import os
 import pickle as cpickle
-
+##
+from baselines.her.config import configure_ddpg
+##
 # Below class instantiates an agent
 class Agent():
-    def __init__(self,FLAGS, env, agent_params):
+    def __init__(self,FLAGS, env, agent_params, dims, params, clip_return):
 
         self.FLAGS = FLAGS
         self.sess = tf.Session()
@@ -25,7 +27,7 @@ class Agent():
         self.model_loc = None
 
         # Initialize actor/critic networks.  Load saved parameters if not retraining
-        self.initialize_networks()   
+        # self.initialize_networks()   
         
         # goal_array will store goal for each layer of agent.
         self.goal_array = [None for i in range(FLAGS.layers)]
@@ -42,6 +44,12 @@ class Agent():
         self.performance_log = []
 
         self.other_params = agent_params
+
+        ##
+        policy = configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
+        
+        return policy
+        ##
 
 
     # Determine whether or not each layer's goal was achieved.  Also, if applicable, return the highest level whose goal was achieved.

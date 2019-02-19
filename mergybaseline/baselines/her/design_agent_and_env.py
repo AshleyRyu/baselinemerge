@@ -22,8 +22,11 @@ from baselines.her.agent import Agent
 from baselines.her.config import configure_ddpg
 from baselines.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env, make_env
 
-def design_agent_and_env(FLAGS):
+def design_agent_and_env(FLAGS, dims, params, clip_return):
 
+    self.dims = dims
+    self.params = params
+    self.clip_return = clip_return
     """
     1. DESIGN AGENT
 
@@ -44,7 +47,8 @@ def design_agent_and_env(FLAGS):
     # Enter max number of atomic actions.  
     # This will typically be FLAGS.time_scale**(FLAGS.layers).  
     # However, in the UR5 Reacher task, we use a shorter episode length.
-    max_actions = FLAGS.time_scale**(FLAGS.layers-1)*6     
+    # max_actions = FLAGS.time_scale**(FLAGS.layers-1)*6 
+    max_actions = 1000    
 
     timesteps_per_action = 15    # Provide the number of time steps per atomic action.
 
@@ -170,8 +174,11 @@ def design_agent_and_env(FLAGS):
     # env = Environment(model_name, goal_space_train, goal_space_test, project_state_to_end_goal, end_goal_thresholds, initial_state_space, subgoal_bounds, project_state_to_subgoal, subgoal_thresholds, max_actions, timesteps_per_action, FLAGS.show)
     # env = 
 
-    agent = Agent(FLAGS,env,agent_params)
-    policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
+    # agent = Agent(FLAGS,env,agent_params)
+    policy = Agent(FLAGS,env,agent_params)
+    # agent = 
+    
+    # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
 
     # return agent, env
     return policy

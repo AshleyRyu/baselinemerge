@@ -7,6 +7,11 @@ from baselines.her.ddpg import DDPG
 from baselines.her.her_sampler import make_sample_her_transitions
 from baselines.bench.monitor import Monitor
 
+##
+from baselines.her.design_agent_and_env import design_agent_and_env
+from baselines.her.layer import Layer
+##
+
 DEFAULT_ENV_PARAMS = {
     'FetchReach-v1': {
         'n_cycles': 10,
@@ -191,7 +196,9 @@ def simple_goal_subtract(a, b):
 #     policy = DDPG(reuse=reuse, **ddpg_params, use_mpi=use_mpi) 
 #     return {}
 
-def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
+def configure_ddpg(dims, params, FLAGS, agent_params, reuse=False, use_mpi=True, clip_return=True):##
+# def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
+
     sample_her_transitions = configure_her(params)
     # Extract relevant parameters.
     gamma = params['gamma']
@@ -200,9 +207,22 @@ def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
 
     input_dims = dims.copy()
 
+
     # DDPG agent -> TD3 agent
     env = cached_make_env(params['make_env'])
     env.reset()
+
+    ## agent로 넘겨줘서 자른부분
+    # sess = tf.Session()
+    # subgoal_test_perc = agent_params["subgoal_test_perc"]
+    # agent_params = agent_params
+
+
+    # layers = [Layer(i,FLAGS,env, sess,agent_params) for i in range(FLAGS.layers)]
+    # goal_array = [None for i in range(FLAGS.layers)]
+    # steps_taken = 0
+    ##
+
     ddpg_params.update({'input_dims': input_dims,  # agent takes an input observations
                         'T': params['T'],
                         'clip_pos_returns': True,  # clip positive returns
@@ -225,7 +245,10 @@ def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
     ddpg_params['info'] = {
         'env_name': params['env_name'],
     }
-    policy = DDPG(reuse=reuse, **ddpg_params, use_mpi=use_mpi) ##policy라는 DDPG instance를 생성
+    
+    # layers = [Layer(i,FLAGS,env, sess,agent_params) for i in range(FLAGS.layers)]
+    # goal_array = [None for i in range(FLAGS.layers)]
+    policy = DDPG(reuse=reuse, **ddpg_params, **agent_params, use_mpi=use_mpi) ##policy라는 DDPG instance를 생성
     return policy
 
 

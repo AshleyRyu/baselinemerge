@@ -329,12 +329,12 @@ class RolloutWorker:
                 noise_eps=self.noise_eps if not self.exploit else 0.,
                 random_eps=self.random_eps if not self.exploit else 0.,
                 use_target_net=self.use_target_net)
-            policy_output = self.policy.get_actions(
-                o, ag, self.g,
-                compute_Q=self.compute_Q,
-                noise_eps=self.noise_eps if not self.exploit else 0.,
-                random_eps=self.random_eps if not self.exploit else 0.,
-                use_target_net=self.use_target_net)
+            # policy_output = self.policy.get_actions(
+            #     o, ag, self.g,
+            #     compute_Q=self.compute_Q,
+            #     noise_eps=self.noise_eps if not self.exploit else 0.,
+            #     random_eps=self.random_eps if not self.exploit else 0.,
+            #     use_target_net=self.use_target_net)
 
             if self.compute_Q:
                 u, Q = policy_output

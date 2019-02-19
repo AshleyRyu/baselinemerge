@@ -27,7 +27,7 @@ class DDPG(object):
                  bc_loss, q_filter, num_demo, demo_batch_size, prm_loss_weight, aux_loss_weight,
                  
                 #  sample_transitions, gamma, reuse=False, **kwargs):
-                 sample_transitions, gamma, td3_policy_freq, td3_policy_noise, td3_noise_clip,  reuse=False, **kwargs): ##
+                 sample_transitions, gamma, td3_policy_freq, td3_policy_noise, td3_noise_clip,  reuse=False, **kwargs, **agent_params): ##
         """Implementation of DDPG that is used in combination with Hindsight Experience Replay (HER).
             Added functionality to use demonstrations for training to Overcome exploration problem.
 
@@ -63,6 +63,8 @@ class DDPG(object):
             demo_batch_size: number of samples to be used from the demonstrations buffer, per mpi thread
             prm_loss_weight: Weight corresponding to the primary loss
             aux_loss_weight: Weight corresponding to the auxilliary loss also called the cloning loss
+
+            agent_params: for HAC agent params
         """
         if self.clip_return is None:
             self.clip_return = np.inf
