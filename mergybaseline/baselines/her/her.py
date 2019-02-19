@@ -10,6 +10,9 @@ from baselines.common import set_global_seeds, tf_util
 from baselines.common.mpi_moments import mpi_moments
 import baselines.her.experiment.config as config
 from baselines.her.rollout import RolloutWorker
+from baselines.common.cmd_util import parse_options
+
+from baselines.her.design_agent_and_env import design_agent_and_env ##
 
 import gym #jw
 
@@ -31,7 +34,7 @@ def train(*, env_name, policy, rollout_worker, evaluator,
         best_policy_path = os.path.join(save_path, 'policy_best.pkl')
         periodic_policy_path = os.path.join(save_path, 'policy_{}.pkl')
 
-    logger.info("Debug @ basemerge : Training...")
+    logger.info("Debug @ basemerge : Training...") # 마지막 ### 8
     best_success_rate = -1
 
     if policy.bc_loss == 1: policy.init_demo_buffer(demo_file) #initialize demo buffer if training with demonstrations
@@ -93,7 +96,7 @@ def train(*, env_name, policy, rollout_worker, evaluator,
     return policy
 
 
-def learn(*, network, env, total_timesteps,
+def learn(*, network, env, total_timesteps, ### 4
     seed=None,
     eval_env=None,
     replay_strategy='future',
@@ -106,7 +109,7 @@ def learn(*, network, env, total_timesteps,
     **kwargs
 ):
     
-    print("-------------------JW Debug @ her.py with hrl baseline merge ----------------------")
+    print("-------------------JW Debug learn func @ her.py with hrl baseline merge ----------------------")
     override_params = override_params or {}
     if MPI is not None:
         rank = MPI.COMM_WORLD.Get_rank()
@@ -121,6 +124,7 @@ def learn(*, network, env, total_timesteps,
     env_name = env.specs[0].id
     params['env_name'] = env_name
     # print(env_name)
+
     
     params['replay_strategy'] = replay_strategy
     if env_name in config.DEFAULT_ENV_PARAMS:
@@ -135,7 +139,7 @@ def learn(*, network, env, total_timesteps,
         params['bc_loss'] = 1
     params.update(kwargs)
 
-    config.log_params(params, logger=logger)
+    config.log_params(params, logger=logger) ### 5
 
     if num_cpu == 1:
         logger.warn()
@@ -146,11 +150,16 @@ def learn(*, network, env, total_timesteps,
             'were obtained with --num_cpu 19. This makes a significant difference and if you ' +
             'are looking to reproduce those results, be aware of this. Please also refer to ' +
             'https://github.com/openai/baselines/issues/314 for further details.')
-        logger.warn('****************')
+        logger.warn('****************') ### 6
         logger.warn()
 
+
     dims = config.configure_dims(params)
-    policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
+    policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return) # 이걸 어떻게 해야해!
+    #===============================#
+    # FLAGS = parse_options() ## Prepare params for HAC.
+    # design_agent_and_env(FLAGS, dims=dims, params=params, clip_return=clip_return) ## make agent(TD3) for HAC.
+    #===============================#
     if load_path is not None:
         tf_util.load_variables(load_path)
 
@@ -180,11 +189,14 @@ def learn(*, network, env, total_timesteps,
     eval_env = eval_env or env
 
     rollout_worker = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
-    evaluator = RolloutWorker(eval_env, policy, dims, logger, **eval_params)
+    ##
+    rollout_worker_high = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
+    ##
+    evaluator = RolloutWorker(eval_env, policy, dims, logger, **eval_params) ## 뭐하는 놈임
 
     n_cycles = params['n_cycles']
     n_epochs = total_timesteps // n_cycles // rollout_worker.T // rollout_worker.rollout_batch_size
-    print("#######################################n_epoch = {}".format(n_epochs))
+    # print("#######################################n_epoch = {}".format(n_epochs)) ### 7
 
     return train(
         save_path=save_path, 

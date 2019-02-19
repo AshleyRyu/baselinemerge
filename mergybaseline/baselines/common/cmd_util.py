@@ -135,7 +135,7 @@ def common_arg_parser():
     parser = arg_parser()
     parser.add_argument('--env', help='environment ID', type=str, default='Reacher-v2')
     parser.add_argument('--seed', help='RNG seed', type=int, default=None)
-    parser.add_argument('--alg', help='Algorithm', type=str, default='ppo2')
+    parser.add_argument('--alg', help='Algorithm', type=str, default='her')
     parser.add_argument('--num_timesteps', type=float, default=1e6),
     parser.add_argument('--network', help='network type (mlp, cnn, lstm, cnn_lstm, conv_only)', default=None)
     parser.add_argument('--gamestate', help='game state to load (so far only used in retro games)', default=None)
@@ -145,6 +145,8 @@ def common_arg_parser():
     parser.add_argument('--save_video_interval', help='Save video every x steps (0 = disabled)', default=0, type=int)
     parser.add_argument('--save_video_length', help='Length of recorded video. Default: 200', default=200, type=int)
     parser.add_argument('--play', default=False, action='store_true')
+    parser.add_argument('--retrain', action='store_true', help='Include to reset policy', default=None) ## A.R, baseline cmd에 들어간다.
+    # parser.add_argument('--retrain', action='store_true', help='Include to reset policy', default=None) ## A.R, baseline cmd에 들어간다.
     return parser
 
 def robotics_arg_parser():
@@ -157,6 +159,55 @@ def robotics_arg_parser():
     parser.add_argument('--num-timesteps', type=int, default=int(1e6))
     return parser
 
+## Added
+def hac_arg_parser():
+    """
+    Create an argparse.ArgumentParser for initialize_HAC.py.
+    """
+    parser = arg_parser()
+    parser.add_argument('--env', help='environment ID', type=str, default='FetchReach-v0')
+    parser.add_argument('--retrain', action='store_true', help='Include to reset policy', default=None)
+    parser.add_argument('--num-timesteps', type=int, default=int(1e6))
+    return parser
+##
+## from HAC/ option.py
+def parse_options():
+    parser = argparse.ArgumentParser()
+
+    # parser.add_argument(
+    #     '--retrain',
+    #     action='store_true',
+    #     help='Include to reset policy'
+    # )
+
+    # parser.add_argument(
+    #     '--test',
+    #     action='store_true',
+    #     help='Include to fix current policy'
+    # )
+
+    # parser.add_argument(
+    #     '--show',
+    #     action='store_true',
+    #     help='Include to visualize training'
+    # )
+
+    # parser.add_argument(
+    #     '--train_only',
+    #     action='store_true',
+    #     help='Include to use training mode only'
+    # )
+
+    # parser.add_argument(
+    #     '--verbose',
+    #     action='store_true',
+    #     help='Print summary of each transition'
+    # )
+
+    FLAGS, unparsed = parser.parse_known_args()
+    
+    return FLAGS
+    ##
 
 def parse_unknown_args(args):
     """

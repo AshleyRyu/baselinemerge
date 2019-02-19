@@ -117,6 +117,11 @@ class DDPG(object):
 
         global DEMO_BUFFER
         DEMO_BUFFER = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions) #initialize the demo buffer; in the same way as the primary data buffer
+        # self.meta_controller = DDPG(self.dimo + self.dimg, self.dimo, self.clip_obs)
+        ##
+        self.low_replay_buffer = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions)
+        self.high_replay_buffer = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions)
+        ##
 
     def _random_action(self, n):
         return np.random.uniform(low=-self.max_u, high=self.max_u, size=(n, self.dimu))
@@ -150,6 +155,7 @@ class DDPG(object):
     def get_actions(self, o, ag, g, noise_eps=0., random_eps=0., use_target_net=False,
                     compute_Q=False):
         # o, o1, g = self._preprocess_og(o, o1, ag, g) ##
+        
         o, g = self._preprocess_og(o, ag, g) 
         policy = self.target if use_target_net else self.main
         # values to compute
@@ -166,6 +172,43 @@ class DDPG(object):
         }
 
         ret = self.sess.run(vals, feed_dict=feed)
+        # action postprocessing
+        u = ret[0]
+        noise = noise_eps * self.max_u * np.random.randn(*u.shape)  # gaussian noise
+        u += noise
+        u = np.clip(u, -self.max_u, self.max_u)
+        u += np.random.binomial(1, random_eps, u.shape[0]).reshape(-1, 1) * (self._random_action(u.shape[0]) - u)  # eps-greedy
+        if u.shape[0] == 1:
+            u = u[0]
+        u = u.copy()
+        ret[0] = u
+
+        if len(ret) == 1:
+            return ret[0]
+        else:
+            return ret
+
+    def get_low_actions(self, o1, ag, hg, noise_eps=0., random_eps=0., use_target_net=False,
+                    compute_Q=False):
+        # o, o1, g = self._preprocess_og(o, o1, ag, g) ##
+        o, hg = self._preprocess_og(o, ag, hg1) 
+        '''
+        policy = self.target if use_target_net else self.main
+        # values to compute
+        vals = [policy.pi_tf]
+        
+        if compute_Q:
+            vals += [policy.Q_pi_tf]
+        # feed
+        feed = {
+            policy.o_tf: o.reshape(-1, self.dimo),
+            # policy.o1_tf: o1.reshape(-1, self.dimo), ##
+            policy.g_tf: g.reshape(-1, self.dimg),
+            policy.u_tf: np.zeros((o.size // self.dimo, self.dimu), dtype=np.float32)
+        }
+
+        ret = self.sess.run(vals, feed_dict=feed)
+        '''
         # action postprocessing
         u = ret[0]
         noise = noise_eps * self.max_u * np.random.randn(*u.shape)  # gaussian noise
@@ -343,7 +386,7 @@ class DDPG(object):
         
         return res
 
-    def _create_network(self, reuse=False): ## num_demo 추가
+    def _create_network(self, reuse=False): ## num_demo 추가 -2
         logger.info("Debug : Creating a DDPG agent with action space %d x %s..." % (self.dimu, self.max_u))
         self.sess = tf_util.get_session()
         # self.num_demo = num_demo
@@ -373,7 +416,7 @@ class DDPG(object):
                 vs.reuse_variables()
             self.main = self.create_actor_critic(batch_tf, net_type='main', **self.__dict__)
             vs.reuse_variables()
-            print("tf.variable_scope(main) = {}".format(tf.variable_scope('target1')))
+            print("tf.variable_scope(main) = {}".format(tf.variable_scope('target1'))) #-1
 
         with tf.variable_scope('target1') as vs:
             if reuse:

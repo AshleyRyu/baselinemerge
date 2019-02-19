@@ -261,6 +261,21 @@ class RolloutWorker:
         self.n_episodes = 0
         self.reset_all_rollouts()
         self.clear_history()
+        
+        ############################################ hrl multi agent ###################################################
+        self.initial_high_goal_gt_tilda = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)  # observations
+        self.initial_high_goal_gt = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)
+        self.high_level_train_step = 10
+        self.discount = 0.99
+        self.total_timestep = 0
+        ################################################################################################################
+        # ############################################ hrl multi agent ###################################################
+        # self.initial_high_goal_gt_tilda = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)  # observations
+        # self.initial_high_goal_gt = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)
+        # self.high_level_train_step = 10
+        # self.discount = 0.99
+        # self.total_timestep = 0
+        # ################################################################################################################
 
     def reset_all_rollouts(self):
         self.obs_dict = self.venv.reset()
@@ -285,7 +300,35 @@ class RolloutWorker:
         dones = []
         info_values = [np.empty((self.T - 1, self.rollout_batch_size, self.dims['info_' + key]), np.float32) for key in self.info_keys]
         Qs = []
+
+        ####################### hrl #############################
+
+        # Rt_high_sum = np.zeros((self.rollout_batch_size, 1), np.float32)
+        # total_timestep = 1
+        # high_goal_gt = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)
+        # #high_goal_gt_tilda = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)
+        # high_old_obj_st = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)
+
+        # u_temp = np.empty((self.rollout_batch_size, self.dims['u']), np.float32)
+
+        # low_nn_at = np.zeros((self.high_level_train_step*self.rollout_batch_size, self.dims['u']),
+        #                           np.float32).reshape(self.rollout_batch_size, self.high_level_train_step, self.dims['u'])
+        # low_nn_st = np.zeros((self.high_level_train_step*self.rollout_batch_size, self.dims['o']),
+        #                           np.float32).reshape(self.rollout_batch_size, self.high_level_train_step, self.dims['o'])
+        # intrinsic_reward = np.zeros((self.rollout_batch_size, 1), np.float32)
+
+        # high_goal_gt[:] = self.initial_high_goal_gt
+        # #high_goal_gt_tilda[:] = self.initial_high_goal_gt_tilda
+
+        ##########################################################
+
         for t in range(self.T):
+            policy_output = self.policy.get_actions(
+                o, ag, self.g,
+                compute_Q=self.compute_Q,
+                noise_eps=self.noise_eps if not self.exploit else 0.,
+                random_eps=self.random_eps if not self.exploit else 0.,
+                use_target_net=self.use_target_net)
             policy_output = self.policy.get_actions(
                 o, ag, self.g,
                 compute_Q=self.compute_Q,
@@ -320,6 +363,10 @@ class RolloutWorker:
                 # here we assume all environments are done is ~same number of steps, so we terminate rollouts whenever any of the envs returns done
                 # trick with using vecenvs is not to add the obs from the environments that are "done", because those are already observations
                 # after a reset
+                # 여기에서 우리는 모든 환경이 동일한 단계 수라고 가정합니다. 
+                # 그래서 envs가 vecenvs를 사용하여 수행 한 트릭을 반환 할 때마다 롤아웃을 종료합니다.
+                # 왜냐하면 그것들은 이미 재설정된 후의 관찰이기 때문이다.
+                
                 break
 
             for i, info_dict in enumerate(info):

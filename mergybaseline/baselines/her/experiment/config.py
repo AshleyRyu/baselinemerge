@@ -154,6 +154,42 @@ def simple_goal_subtract(a, b):
     assert a.shape == b.shape
     return a - b
 
+# def configure_hrl(params): ##
+#     sample_her_transitions = configure_her(params)
+#     # Extract relevant parameters.
+#     gamma = params['gamma']
+#     rollout_batch_size = params['rollout_batch_size']
+#     ddpg_params = params['ddpg_params']
+
+#     input_dims = dims.copy()
+
+#     # DDPG agent -> TD3 agent
+#     env = cached_make_env(params['make_env'])
+#     env.reset()
+#     ddpg_params.update({'input_dims': input_dims,  # agent takes an input observations
+#                         'T': params['T'],
+#                         'clip_pos_returns': True,  # clip positive returns
+#                         'clip_return': (1. / (1. - gamma)) if clip_return else np.inf,  # max abs of return
+#                         'rollout_batch_size': rollout_batch_size,
+#                         'subtract_goals': simple_goal_subtract,
+#                         'sample_transitions': sample_her_transitions,
+#                         'gamma': gamma,
+#                         'bc_loss': params['bc_loss'],
+#                         'q_filter': params['q_filter'],
+#                         'num_demo': params['num_demo'],
+#                         'demo_batch_size': params['demo_batch_size'],
+#                         'prm_loss_weight': params['prm_loss_weight'],
+#                         'aux_loss_weight': params['aux_loss_weight'],
+                        
+#                         'td3_policy_freq': params['td3_policy_freq'], ##
+#                         'td3_policy_noise': params['td3_policy_noise'], ##
+#                         'td3_noise_clip': params['td3_noise_clip'] ##
+#                         })
+#     ddpg_params['info'] = {
+#         'env_name': params['env_name'],
+#     }
+#     policy = DDPG(reuse=reuse, **ddpg_params, use_mpi=use_mpi) 
+#     return {}
 
 def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
     sample_her_transitions = configure_her(params)
@@ -164,7 +200,7 @@ def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
 
     input_dims = dims.copy()
 
-    # DDPG agent
+    # DDPG agent -> TD3 agent
     env = cached_make_env(params['make_env'])
     env.reset()
     ddpg_params.update({'input_dims': input_dims,  # agent takes an input observations
@@ -189,7 +225,7 @@ def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
     ddpg_params['info'] = {
         'env_name': params['env_name'],
     }
-    policy = DDPG(reuse=reuse, **ddpg_params, use_mpi=use_mpi)
+    policy = DDPG(reuse=reuse, **ddpg_params, use_mpi=use_mpi) ##policy라는 DDPG instance를 생성
     return policy
 
 
@@ -197,7 +233,7 @@ def configure_dims(params):
     env = cached_make_env(params['make_env'])
     env.reset()
     obs, _, _, info = env.step(env.action_space.sample())
-    # print("################observation high : {}/{}".format(max(obs['observation']),min(obs['observation'])))
+    print("################observation high : {}/{}".format(max(obs['observation']),min(obs['observation'])))
     dims = {
         'o': obs['observation'].shape[0],
         'u': env.action_space.shape[0],
