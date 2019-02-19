@@ -8,7 +8,10 @@ from baselines.her.her_sampler import make_sample_her_transitions
 from baselines.bench.monitor import Monitor
 
 ##
-from baselines.her.design_agent_and_env import design_agent_and_env
+import sys
+sys.path.insert(0, 'baselines/her')
+import design_agent_and_env
+# from baselines.her.design_agent_and_env import design_agent_and_env
 from baselines.her.layer import Layer
 ##
 
@@ -197,7 +200,6 @@ def simple_goal_subtract(a, b):
 #     return {}
 
 def configure_ddpg(dims, params, FLAGS, agent_params, reuse=False, use_mpi=True, clip_return=True):##
-# def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
 
     sample_her_transitions = configure_her(params)
     # Extract relevant parameters.

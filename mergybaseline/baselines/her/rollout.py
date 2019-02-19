@@ -283,7 +283,7 @@ class RolloutWorker:
         self.initial_ag = self.obs_dict['achieved_goal']
         self.g = self.obs_dict['desired_goal']
 
-    def generate_rollouts(self):
+    def generate_rollouts(self, FLAGS):
         """Performs `rollout_batch_size` rollouts in parallel for time horizon `T` with the current
         policy acting on it accordingly.
         """
@@ -329,12 +329,30 @@ class RolloutWorker:
                 noise_eps=self.noise_eps if not self.exploit else 0.,
                 random_eps=self.random_eps if not self.exploit else 0.,
                 use_target_net=self.use_target_net)
+            
+
             # policy_output = self.policy.get_actions(
             #     o, ag, self.g,
             #     compute_Q=self.compute_Q,
             #     noise_eps=self.noise_eps if not self.exploit else 0.,
             #     random_eps=self.random_eps if not self.exploit else 0.,
             #     use_target_net=self.use_target_net)
+
+            ## from run_HAC.py
+            # Determine training mode.  If not testing and not solely training, interleave training and testing to track progress
+            mix_train_test = False
+            if not FLAGS.test and not FLAGS.train_only:
+                mix_train_test = True
+
+            ## from run_HAC.py, 이 뒤로 다 indentation해줌
+            # Evaluate policy every TEST_FREQ batches if interleaving training and testing
+            if mix_train_test and batch % TEST_FREQ == 0:
+                print("\n--- HAC TESTING ---")
+                agent.FLAGS.test = True
+                num_episodes = num_test_episodes            
+
+                # Reset successful episode counter
+                successful_episodes = 0
 
             if self.compute_Q:
                 u, Q = policy_output

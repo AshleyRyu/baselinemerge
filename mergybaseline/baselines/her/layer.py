@@ -1,10 +1,12 @@
 import numpy as np
-from experience_buffer import ExperienceBuffer
+# from experience_buffer import ExperienceBuffer
 # from actor import Actor
 # from critic import Critic
 from time import sleep
 
 from baselines.her.ddpg import DDPG
+from baselines.her.replay_buffer import ReplayBuffer
+from baselines.her.actor_critic import ActorCritic
 
 
 class Layer():
@@ -44,14 +46,14 @@ class Layer():
 
         # self.buffer_size = 10000000
         self.batch_size = 1024
-        self.replay_buffer = ExperienceBuffer(self.buffer_size, self.batch_size)
+        # self.replay_buffer = ExperienceBuffer(self.buffer_size, self.batch_size)
 
         # Create buffer to store not yet finalized goal replay transitions
         self.temp_goal_replay_storage = []
 
-        # Initialize actor and critic networks
-        self.actor = Actor(sess, env, self.batch_size, self.layer_number, FLAGS)
-        self.critic = Critic(sess, env, self.layer_number, FLAGS)
+        # Initialize actor and critic networks -> DDPG에서 만들어줌
+        # self.actor = Actor(sess, env, self.batch_size, self.layer_number, FLAGS)
+        # self.critic = Critic(sess, env, self.layer_number, FLAGS)
 
         # Parameter determines degree of noise added to actions during training
         # self.noise_perc = noise_perc
@@ -158,6 +160,7 @@ class Layer():
 
         # Add action replay transition to layer's replay buffer
         self.replay_buffer.add(np.copy(transition))
+        
 
 
     # Create initial goal replay transitions

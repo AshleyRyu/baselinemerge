@@ -1,16 +1,23 @@
 import numpy as np
-from layer import Layer
-from environment import Environment
+from baselines.her.layer import Layer
+# from environment import Environment
 import pickle as cpickle
 import tensorflow as tf
 import os
 import pickle as cpickle
 ##
-from baselines.her.config import configure_ddpg
-##
+# import baselines.her.experiment.config as config
+# import baselines.her.config as config
+# from baselines.her.config import configure_ddpg
+# from .experiment.config import config
+import sys
+sys.path.insert(0, 'baselines/her/experiment')
+import config
+# import .experiment.config as config
+#
 # Below class instantiates an agent
 class Agent():
-    def __init__(self,FLAGS, env, agent_params, dims, params, clip_return):
+    def __init__(self, FLAGS, env, agent_params, dims, params, clip_return):
 
         self.FLAGS = FLAGS
         self.sess = tf.Session()
@@ -45,11 +52,13 @@ class Agent():
 
         self.other_params = agent_params
 
-        ##
-        policy = configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
-        
-        return policy
-        ##
+        # return 
+
+        # ##
+        self.policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
+        # # policy = 1
+        # return policy
+        # ##
 
 
     # Determine whether or not each layer's goal was achieved.  Also, if applicable, return the highest level whose goal was achieved.

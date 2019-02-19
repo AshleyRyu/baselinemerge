@@ -27,7 +27,7 @@ class DDPG(object):
                  bc_loss, q_filter, num_demo, demo_batch_size, prm_loss_weight, aux_loss_weight,
                  
                 #  sample_transitions, gamma, reuse=False, **kwargs):
-                 sample_transitions, gamma, td3_policy_freq, td3_policy_noise, td3_noise_clip,  reuse=False, **kwargs, **agent_params): ##
+                 sample_transitions, gamma, td3_policy_freq, td3_policy_noise, td3_noise_clip,  reuse=False, *agent_params, **kwargs): ##
         """Implementation of DDPG that is used in combination with Hindsight Experience Replay (HER).
             Added functionality to use demonstrations for training to Overcome exploration problem.
 

@@ -11,7 +11,6 @@ from mpi4py import MPI
 from baselines import logger
 from baselines.common import set_global_seeds, tf_util
 from baselines.common.mpi_moments import mpi_moments
-import baselines.her.experiment.config as config
 from baselines.her.rollout import RolloutWorker
 # from baselines.common.cmd_util import parse_options
 
@@ -19,14 +18,17 @@ import numpy as np
 # from environment import Environment
 # from utils import check_validity
 from baselines.her.agent import Agent
-from baselines.her.config import configure_ddpg
 from baselines.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env, make_env
+# import baselines.her.experiment.config as config
+import sys
+sys.path.insert(0, 'baselines/her/experiment')
+import config
 
-def design_agent_and_env(FLAGS, dims, params, clip_return):
+def design_agent_and_env(FLAGS, env, dims, params, clip_return):
 
-    self.dims = dims
-    self.params = params
-    self.clip_return = clip_return
+    # self.dims = dims
+    # self.params = params
+    # self.clip_return = clip_return
     """
     1. DESIGN AGENT
 
@@ -175,7 +177,10 @@ def design_agent_and_env(FLAGS, dims, params, clip_return):
     # env = 
 
     # agent = Agent(FLAGS,env,agent_params)
-    policy = Agent(FLAGS,env,agent_params)
+    policy = Agent(FLAGS, env, agent_params, dims, params, clip_return).policy
+    # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
+        
+    
     # agent = 
     
     # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
