@@ -155,10 +155,10 @@ def learn(*, network, env, total_timesteps, ### 4
 
 
     dims = config.configure_dims(params)
-    policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return) # 이걸 어떻게 해야해!
+    # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return) # 이걸 어떻게 해야해!
     #===============================#
-    # FLAGS = parse_options() ## Prepare params for HAC.
-    # design_agent_and_env(FLAGS, dims=dims, params=params, clip_return=clip_return) ## make agent(TD3) for HAC.
+    FLAGS = parse_options() ## Prepare params for HAC.
+    policy = design_agent_and_env(FLAGS, dims=dims, params=params, clip_return=clip_return) ## make agent(TD3) for HAC.
     #===============================#
     if load_path is not None:
         tf_util.load_variables(load_path)
