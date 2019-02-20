@@ -1,4 +1,7 @@
 import os
+import sys
+sys.path.insert(0, 'baselines/her/experiment')
+sys.path.insert(0, 'baselines/her')
 
 import click
 import numpy as np
@@ -8,11 +11,14 @@ from mpi4py import MPI
 from baselines import logger
 from baselines.common import set_global_seeds, tf_util
 from baselines.common.mpi_moments import mpi_moments
-import baselines.her.experiment.config as config
+# import baselines.her.experiment.config as config
 from baselines.her.rollout import RolloutWorker
 from baselines.common.cmd_util import parse_options
 
 from baselines.her.design_agent_and_env import design_agent_and_env ##
+
+import config as config 
+# import configure_ddpg, configure_dims 
 
 import gym #jw
 
@@ -161,10 +167,46 @@ def learn(*, network, env, total_timesteps, ### 4
 
     dims = config.configure_dims(params)
     # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
-        
     #===============================#
     FLAGS = parse_options() ## Prepare params for HAC.
-    policy = config.configure_ddpg(FLAGS, dims=dims, params=params, clip_return=clip_return) # 이걸 어떻게 해야해!
+    
+    FLAGS.layers = 2    # Enter number of levels in agent hierarchy
+
+    FLAGS.time_scale = 10    # Enter max sequence length in which each policy will specialize
+
+    # Enter max number of atomic actions.  
+    # This will typically be FLAGS.time_scale**(FLAGS.layers).  
+    # However, in the UR5 Reacher task, we use a shorter episode length.
+    # max_actions = FLAGS.time_scale**(FLAGS.layers-1)*6 
+    max_actions = 1000    
+
+    timesteps_per_action = 15    # Provide the number of time steps per atomic action.
+
+    agent_params = {}
+
+    # Define percentage of actions that a subgoal level (i.e. level i > 0) will test subgoal actions
+    agent_params["subgoal_test_perc"] = 0.3
+
+    # Define subgoal penalty for missing subgoal.  Please note that by default the Q value target for missed subgoals does not include Q-value of next state (i.e, discount rate = 0).  As a result, the Q-value target for missed subgoal just equals penalty.  For instance in this 3-level UR5 implementation, if a level proposes a subgoal and misses it, the Q target value for this action would be -10.  To incorporate the next state in the penalty, go to the "penalize_subgoal" method in the "layer.py" file.
+    agent_params["subgoal_penalty"] = -FLAGS.time_scale     
+
+    # Define exploration noise that is added to both subgoal actions and atomic actions.  Noise added is Gaussian N(0, noise_percentage * action_dim_range)    
+    agent_params["atomic_noise"] = [0.1 for i in range(3)]
+    agent_params["subgoal_noise"] = [0.03 for i in range(6)]
+
+    # Define number of episodes of transitions to be stored by each level of the hierarchy
+    agent_params["episodes_to_store"] = 500
+
+    # Provide training schedule for agent.  
+    # Training by default will alternate between exploration and testing.  
+    # Hyperparameter below indicates number of exploration episodes.  
+    # Testing occurs for 100 episodes.  To change number of testing episodes, go to "ran_HAC.py". 
+    agent_params["num_exploration_episodes"] = 50
+    # policy = config.configure_ddpg(params, FLAGS, dims, reuse, use_mpi, clip_return) # 이걸 어떻게 해야해!
+    
+# def configure_ddpg(dims, params, FLAGS, agent_params, reuse=False, use_mpi=True, clip_return=True):
+    policy = config.configure_ddpg(dims=dims, params=params, FLAGS=FLAGS, agent_params=agent_params, reuse=False, use_mpi=True, clip_return=True) # 이걸 어떻게 해야해!
+    # 원래 dims, params, reuse=False, use_mpi=True, clip_return=True
 
     # agent = design_agent_and_env(FLAGS, env, dims=dims, params=params, clip_return=clip_return) ## make agent(TD3) for HAC.
     # policy = design_agent_and_env(FLAGS, env, dims=dims, params=params, clip_return=clip_return) ## make agent(TD3) for HAC.
@@ -200,7 +242,7 @@ def learn(*, network, env, total_timesteps, ### 4
     ## Done with prepare
     # run_HAC(FLAGS, agent)
     # agent = design_agent_and_env(FLAGS, env, dims=dims, params=params, clip_return=clip_return) ## 원래거
-    agent = design_agent_and_env(FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params)
+    agent = design_agent_and_env(FLAGS, env, dims, policy, logger, rollout_params, eval_params,agent_params, monitor=True)
 
     # rollout_worker = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
     # ##

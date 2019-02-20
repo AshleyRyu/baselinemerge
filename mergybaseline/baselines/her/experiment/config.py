@@ -200,8 +200,9 @@ def simple_goal_subtract(a, b):
 #     policy = DDPG(reuse=reuse, **ddpg_params, use_mpi=use_mpi) 
 #     return {}
 
-#configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
-def configure_ddpg(params, FLAGS, agent_params, dims, reuse=False, use_mpi=True, clip_return=True):##
+# def configure_ddpg(dims, params, clip_return=true, FLAGS=FLAGS, agent_params=agent_params):
+def configure_ddpg(dims, params, FLAGS, agent_params, reuse=False, use_mpi=True, clip_return=True):
+# def configure_ddpg(params, FLAGS, agent_params, dims, reuse=False, use_mpi=True, clip_return=True):##
 
     sample_her_transitions = configure_her(params)
     # Extract relevant parameters.

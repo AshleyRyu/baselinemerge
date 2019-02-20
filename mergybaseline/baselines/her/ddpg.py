@@ -150,7 +150,7 @@ class DDPG(object):
         # return o, o1, g
         return o, g
 
-    def step(self, obs, FLAGS):
+    def step(self, obs):
         # FLAGS = FLAGS
         actions = self.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'])
         # actions = self.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'], FLAGS)

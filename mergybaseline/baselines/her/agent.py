@@ -19,7 +19,7 @@ import config
 class Agent():
     ## self, FLAGS, env, agent_params, dims, params, clip_return 원래 input
     ## FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params
-    def __init__(self, FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params):
+    def __init__(self, FLAGS, env,agent_params, policy, dims, logger, rollout_params, eval_params, monitor=True):
 
         self.FLAGS = FLAGS
         self.sess = tf.Session()
@@ -28,7 +28,7 @@ class Agent():
         self.subgoal_test_perc = agent_params["subgoal_test_perc"]
 
         # Create agent with number of levels specified by user       
-        self.layers = [Layer(i,FLAGS,env,self.sess,agent_params, policy, dims, logger, monitor, **rollout_params, **eval_params) for i in range(FLAGS.layers)]        
+        self.layers = [Layer(i,FLAGS, env, self.sess, agent_params, policy, dims, logger, monitor, **rollout_params, **eval_params) for i in range(FLAGS.layers)]        
 
         # Below attributes will be used help save network parameters
         self.saver = None

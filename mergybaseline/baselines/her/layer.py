@@ -14,7 +14,7 @@ sys.path.insert(0, 'baselines/her/experiment')
 import config
 
 class Layer():
-    def __init__(self, layer_number, FLAGS, env, sess, agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params):
+    def __init__(self, layer_number, FLAGS, env, sess, agent_params, policy, dims, logger, rollout_params, eval_params, monitor=True):
     # def __init__(self, layer_number, FLAGS, env, sess, agent_params): ## 원래
         self.layer_number = layer_number
         self.FLAGS = FLAGS
@@ -57,6 +57,8 @@ class Layer():
         self.temp_goal_replay_storage = []
 
         # Initialize actor and critic networks -> DDPG에서 만들어줌
+
+        eval_env = env
 
         ## from rollout.py
         rollout_worker = RolloutWorker(eval_env, policy, dims, logger, monitor=True, **rollout_params)

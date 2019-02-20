@@ -14,17 +14,23 @@ from baselines.common.mpi_moments import mpi_moments
 from baselines.her.rollout import RolloutWorker
 # from baselines.common.cmd_util import parse_options
 
+
 import numpy as np
 # from environment import Environment
 # from utils import check_validity
-from baselines.her.agent import Agent
+import sys
+sys.path.insert(0, 'baselines/her')
+import agent as ag
+# from . import Agent
+# from agent import Agent
+# from baselines.her.agent import Agent
 from baselines.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env, make_env
 # import baselines.her.experiment.config as config
 import sys
 sys.path.insert(0, 'baselines/her/experiment')
 import config
 
-def design_agent_and_env(FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params): 
+def design_agent_and_env(FLAGS, env, policy, dims, logger, rollout_params, eval_params, agent_params, monitor=True): 
 # def design_agent_and_env(FLAGS, env, dims, params, clip_return): ## 원래
 
     # self.dims = dims
@@ -143,26 +149,26 @@ def design_agent_and_env(FLAGS, env,agent_params, policy, dims, logger, monitor=
         d. Replay buffer size
     """
 
-    agent_params = {}
+    # agent_params = {}
 
-    # Define percentage of actions that a subgoal level (i.e. level i > 0) will test subgoal actions
-    agent_params["subgoal_test_perc"] = 0.3
+    # # Define percentage of actions that a subgoal level (i.e. level i > 0) will test subgoal actions
+    # agent_params["subgoal_test_perc"] = 0.3
 
-    # Define subgoal penalty for missing subgoal.  Please note that by default the Q value target for missed subgoals does not include Q-value of next state (i.e, discount rate = 0).  As a result, the Q-value target for missed subgoal just equals penalty.  For instance in this 3-level UR5 implementation, if a level proposes a subgoal and misses it, the Q target value for this action would be -10.  To incorporate the next state in the penalty, go to the "penalize_subgoal" method in the "layer.py" file.
-    agent_params["subgoal_penalty"] = -FLAGS.time_scale     
+    # # Define subgoal penalty for missing subgoal.  Please note that by default the Q value target for missed subgoals does not include Q-value of next state (i.e, discount rate = 0).  As a result, the Q-value target for missed subgoal just equals penalty.  For instance in this 3-level UR5 implementation, if a level proposes a subgoal and misses it, the Q target value for this action would be -10.  To incorporate the next state in the penalty, go to the "penalize_subgoal" method in the "layer.py" file.
+    # agent_params["subgoal_penalty"] = -FLAGS.time_scale     
 
-    # Define exploration noise that is added to both subgoal actions and atomic actions.  Noise added is Gaussian N(0, noise_percentage * action_dim_range)    
-    agent_params["atomic_noise"] = [0.1 for i in range(3)]
-    agent_params["subgoal_noise"] = [0.03 for i in range(6)]
+    # # Define exploration noise that is added to both subgoal actions and atomic actions.  Noise added is Gaussian N(0, noise_percentage * action_dim_range)    
+    # agent_params["atomic_noise"] = [0.1 for i in range(3)]
+    # agent_params["subgoal_noise"] = [0.03 for i in range(6)]
 
-    # Define number of episodes of transitions to be stored by each level of the hierarchy
-    agent_params["episodes_to_store"] = 500
+    # # Define number of episodes of transitions to be stored by each level of the hierarchy
+    # agent_params["episodes_to_store"] = 500
 
-    # Provide training schedule for agent.  
-    # Training by default will alternate between exploration and testing.  
-    # Hyperparameter below indicates number of exploration episodes.  
-    # Testing occurs for 100 episodes.  To change number of testing episodes, go to "ran_HAC.py". 
-    agent_params["num_exploration_episodes"] = 50
+    # # Provide training schedule for agent.  
+    # # Training by default will alternate between exploration and testing.  
+    # # Hyperparameter below indicates number of exploration episodes.  
+    # # Testing occurs for 100 episodes.  To change number of testing episodes, go to "ran_HAC.py". 
+    # agent_params["num_exploration_episodes"] = 50
 
     # For other relavent agent hyperparameters, please refer to the "agent.py" and "layer.py" files
 
