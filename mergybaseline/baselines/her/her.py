@@ -19,6 +19,8 @@ from baselines.her.design_agent_and_env import design_agent_and_env ##
 
 import config as config 
 # import configure_ddpg, configure_dims 
+import pickle as cpickle
+import agent as Agent
 
 import gym #jw
 
@@ -31,7 +33,7 @@ def mpi_average(value):
 
 
 # def train(*, env_name, policy, rollout_worker, evaluator,
-def train(*, env_name, policy, agent, evaluator,
+def train(*, env_name, agent, policy, evaluator,
           n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval,
           save_path, demo_file, FLAGS, **kwargs):
         #   save_path, demo_file, **kwargs):
@@ -46,7 +48,7 @@ def train(*, env_name, policy, agent, evaluator,
     best_success_rate = -1
 
     if policy.bc_loss == 1: policy.init_demo_buffer(demo_file) #initialize demo buffer if training with demonstrations
-
+        
     # num_timesteps = n_epochs * n_cycles * rollout_length * number of rollout workers
     for epoch in range(n_epochs):
         # train
@@ -257,6 +259,7 @@ def learn(*, network, env, total_timesteps, ### 4
     return train(
         save_path=save_path, 
         env_name=env_name, #jw
+        agent=agent, #jw
         policy=policy, rollout_worker=rollout_worker,
         evaluator=evaluator, n_epochs=n_epochs, n_test_rollouts=params['n_test_rollouts'],
         n_cycles=params['n_cycles'], n_batches=params['n_batches'],

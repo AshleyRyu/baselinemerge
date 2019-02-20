@@ -112,7 +112,7 @@ class Layer():
         if agent.FLAGS.test or subgoal_test:
 
             return self.actor.get_action(np.reshape(self.current_state,(1,len(self.current_state))), np.reshape(self.goal,(1,len(self.goal))))[0], "Policy", subgoal_test
-
+            return self.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'])
         else:
 
             if np.random.random_sample() > 0.2:

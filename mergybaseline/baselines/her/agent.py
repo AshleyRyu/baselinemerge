@@ -154,12 +154,19 @@ class Agent():
     def train(self, env, episode_num):
 
         # Select final goal from final goal space, defined in "design_agent_and_env.py" 
-        self.goal_array[self.FLAGS.layers - 1] = env.get_next_goal(self.FLAGS.test)
+        # self.goal_array[self.FLAGS.layers - 1] = env.get_next_goal(self.FLAGS.test)
+
+        ## from rollout.py
+        self.obs_dict = self.env.reset()
+        self.initial_o = self.obs_dict['observation']
+        self.initial_ag = self.obs_dict['achieved_goal']
+        self.g = self.obs_dict['desired_goal']
+        self.goal_array[self.FLAGS.layers - 1] = self.g
         print("Next End Goal: ", self.goal_array[self.FLAGS.layers - 1])
 
         # Select initial state from in initial state space, defined in environment.py
         # self.current_state = env.reset_sim()
-        self.current_state = env.reset()
+        self.current_state = self.initial_o
         print("Initial State: ", self.current_state)
 
         # Reset step counter

@@ -9,6 +9,8 @@ from baselines.her.replay_buffer import ReplayBuffer
 from baselines.her.actor_critic import ActorCritic
 from baselines.her.rollout import RolloutWorker
 
+from . import rollout
+
 import sys
 sys.path.insert(0, 'baselines/her/experiment')
 import config
@@ -24,7 +26,8 @@ class Layer():
         if FLAGS.layers > 1:
             self.time_limit = FLAGS.time_scale
         else:
-            self.time_limit = env.max_actions
+            # self.time_limit = env.max_actions
+            self.time_limit = env.action.high
 
         self.current_state = None
         self.goal = None
@@ -310,7 +313,8 @@ class Layer():
             return False
 
 
-    # Learn to achieve goals with actions belonging to appropriate time scale.  "goal_array" contains the goal states for the current layer and all higher layers
+    # Learn to achieve goals with actions belonging to appropriate time scale.  
+    # "goal_array" contains the goal states for the current layer and all higher layers
     def train(self, agent, env, subgoal_test = False, episode_num = None):
 
         # print("\nTraining Layer %d" % self.layer_number)
@@ -323,8 +327,8 @@ class Layer():
         self.maxed_out = False
 
         # Display all subgoals if visualizing training and current layer is bottom layer
-        if self.layer_number == 0 and agent.FLAGS.show and agent.FLAGS.layers > 1:
-            env.display_subgoals(agent.goal_array)
+        # if self.layer_number == 0 and agent.FLAGS.show and agent.FLAGS.layers > 1:
+            # env.display_subgoals(agent.goal_array)
             # env.sim.data.mocap_pos[3] = env.project_state_to_end_goal(env.sim,self.current_state)
             # print("Subgoal Pos: ", env.sim.data.mocap_pos[1])
 
@@ -335,6 +339,8 @@ class Layer():
 
             # Select action to achieve goal state using epsilon-greedy policy or greedy policy if in test mode
             action, action_type, next_subgoal_test = self.choose_action(agent, env, subgoal_test)
+            # action, action_type, next_subgoal_test = actions = self.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'])
+            # self.choose_action(agent, env, subgoal_test)
 
             """
             if self.layer_number == agent.FLAGS.layers - 1:

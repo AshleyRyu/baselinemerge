@@ -195,43 +195,6 @@ class DDPG(object):
         else:
             return ret
 
-    def get_low_actions(self, o1, ag, hg, noise_eps=0., random_eps=0., use_target_net=False,
-                    compute_Q=False):
-        # o, o1, g = self._preprocess_og(o, o1, ag, g) ##
-        o, hg = self._preprocess_og(o, ag, hg1) 
-        '''
-        policy = self.target if use_target_net else self.main
-        # values to compute
-        vals = [policy.pi_tf]
-        
-        if compute_Q:
-            vals += [policy.Q_pi_tf]
-        # feed
-        feed = {
-            policy.o_tf: o.reshape(-1, self.dimo),
-            # policy.o1_tf: o1.reshape(-1, self.dimo), ##
-            policy.g_tf: g.reshape(-1, self.dimg),
-            policy.u_tf: np.zeros((o.size // self.dimo, self.dimu), dtype=np.float32)
-        }
-
-        ret = self.sess.run(vals, feed_dict=feed)
-        '''
-        # action postprocessing
-        u = ret[0]
-        noise = noise_eps * self.max_u * np.random.randn(*u.shape)  # gaussian noise
-        u += noise
-        u = np.clip(u, -self.max_u, self.max_u)
-        u += np.random.binomial(1, random_eps, u.shape[0]).reshape(-1, 1) * (self._random_action(u.shape[0]) - u)  # eps-greedy
-        if u.shape[0] == 1:
-            u = u[0]
-        u = u.copy()
-        ret[0] = u
-
-        if len(ret) == 1:
-            return ret[0]
-        else:
-            return ret
-
     def init_demo_buffer(self, demoDataFile, update_stats=True): #function that initializes the demo buffer
 
         demoData = np.load(demoDataFile) #load the demonstration data from data file
@@ -375,7 +338,7 @@ class DDPG(object):
         self.sess.run(self.init_target2_net_op)
 
     def update_target_net(self):
-        self.sess.run(self.update_target_net_op)
+        # self.sess.run(self.update_target_net_op)
         self.sess.run(self.update_target1_net_op)
         self.sess.run(self.update_target2_net_op)
 

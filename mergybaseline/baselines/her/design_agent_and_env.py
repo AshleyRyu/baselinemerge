@@ -201,5 +201,5 @@ def design_agent_and_env(FLAGS, env, policy, dims, logger, rollout_params, eval_
     # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
 
     # return agent, env
-    return policy
+    return agent
     
