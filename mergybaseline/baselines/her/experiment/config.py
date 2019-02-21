@@ -253,11 +253,19 @@ def configure_ddpg(dims, params, FLAGS, agent_params, reuse=False, use_mpi=True,
     ddpg_params['info'] = {
         'env_name': params['env_name'],
     }
-    
+    print(ddpg_params)
     # layers = [Layer(i,FLAGS,env, sess,agent_params) for i in range(FLAGS.layers)]
     # goal_array = [None for i in range(FLAGS.layers)]
     # reuse=reuse, **ddpg_params, use_mpi=use_mpi
-    policy = DDPG(FLAGS, reuse=reuse, agent_params, ddpg_params, use_mpi=use_mpi) ##policy라는 DDPG instance를 생성
+        # def __init__(self, FLAGS, input_dims, buffer_size, hidden, layers, network_class, polyak, batch_size,
+        #          Q_lr, pi_lr, norm_eps, norm_clip, max_u, action_l2, clip_obs, scope, T,
+        #          rollout_batch_size, subtract_goals, relative_goals, clip_pos_returns, clip_return,
+        #          bc_loss, q_filter, num_demo, demo_batch_size, prm_loss_weight, aux_loss_weight,
+                 
+        #         #  sample_transitions, gamma, reuse=False, **kwargs):
+        #          sample_transitions, gamma, td3_policy_freq, td3_policy_noise, td3_noise_clip, reuse=False, *agent_params, **kwargs): ##
+    # policy = DDPG(FLAGS, ddpg_params, reuse, agent_params, use_mpi=use_mpi) ##policy라는 DDPG instance를 생성
+    policy = DDPG(FLAGS, reuse=reuse, **agent_params, **ddpg_params, use_mpi=use_mpi)
     return policy
 
 

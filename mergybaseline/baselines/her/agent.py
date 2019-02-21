@@ -1,5 +1,4 @@
 import numpy as np
-from baselines.her.layer import Layer
 # from environment import Environment
 import pickle as cpickle
 import tensorflow as tf
@@ -13,13 +12,18 @@ import pickle as cpickle
 import sys
 sys.path.insert(0, 'baselines/her/experiment')
 import config
+
+sys.path.insert(0, 'baselines/her')
+from layer import Layer
 # import .experiment.config as config
 #
 # Below class instantiates an agent
 class Agent():
     ## self, FLAGS, env, agent_params, dims, params, clip_return 원래 input
     ## FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params
-    def __init__(self, FLAGS, env,agent_params, policy, dims, logger, rollout_params, eval_params, monitor=True):
+    def __init__(self, dims, FLAGS, env, policy, agent_params, rollout_params, eval_params, monitor=True):
+
+        print("@ Agent, FLAGS={}, dims={}, env={}, policy={}, agent_params={}, rollout_params={}, eval_params={}".format(FLAGS, dims, env, policy, agent_params, rollout_params, eval_params))
 
         self.FLAGS = FLAGS
         self.sess = tf.Session()
@@ -28,7 +32,7 @@ class Agent():
         self.subgoal_test_perc = agent_params["subgoal_test_perc"]
 
         # Create agent with number of levels specified by user       
-        self.layers = [Layer(i,FLAGS, env, self.sess, agent_params, policy, dims, logger, monitor, **rollout_params, **eval_params) for i in range(FLAGS.layers)]        
+        self.layers = [Layer(i, dims, FLAGS, env, self.sess, policy, agent_params, rollout_params, eval_params, monitor=True) for i in range(FLAGS.layers)]        
 
         # Below attributes will be used help save network parameters
         self.saver = None

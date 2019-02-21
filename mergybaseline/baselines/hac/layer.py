@@ -111,7 +111,7 @@ class Layer():
         # If testing mode or testing subgoals, action is output of actor network without noise
         if agent.FLAGS.test or subgoal_test:
 
-            return self.actor.get_action(np.reshape(self.current_state,(1,len(self.current_state))), np.reshape(self.goal,(1,len(self.goal))))[0], "Policy", subgoal_test
+            # return self.actor.get_action(np.reshape(self.current_state,(1,len(self.current_state))), np.reshape(self.goal,(1,len(self.goal))))[0], "Policy", subgoal_test
             return self.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'])
         else:
 
@@ -292,7 +292,8 @@ class Layer():
             return False
 
 
-    # Learn to achieve goals with actions belonging to appropriate time scale.  "goal_array" contains the goal states for the current layer and all higher layers
+    # Learn to achieve goals with actions belonging to appropriate time scale.  
+    # "goal_array" contains the goal states for the current layer and all higher layers
     def train(self, agent, env, subgoal_test = False, episode_num = None):
 
         # print("\nTraining Layer %d" % self.layer_number)

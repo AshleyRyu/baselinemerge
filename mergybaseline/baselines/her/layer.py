@@ -9,14 +9,14 @@ from baselines.her.replay_buffer import ReplayBuffer
 from baselines.her.actor_critic import ActorCritic
 from baselines.her.rollout import RolloutWorker
 
-from . import rollout
+import rollout
 
 import sys
 sys.path.insert(0, 'baselines/her/experiment')
 import config
 
 class Layer():
-    def __init__(self, layer_number, FLAGS, env, sess, agent_params, policy, dims, logger, rollout_params, eval_params, monitor=True):
+    def __init__(self, layer_number, dims, FLAGS, env, sess, policy, agent_params, rollout_params, eval_params, monitor=True):
     # def __init__(self, layer_number, FLAGS, env, sess, agent_params): ## 원래
         self.layer_number = layer_number
         self.FLAGS = FLAGS
@@ -64,12 +64,11 @@ class Layer():
         eval_env = env
 
         ## from rollout.py
-        rollout_worker = RolloutWorker(eval_env, policy, dims, logger, monitor=True, **rollout_params)
-        evaluator = RolloutWorker(eval_env, policy, dims, logger, **eval_params)
+        self.rollout_worker = RolloutWorker(eval_env, policy, dims, monitor=True, **rollout_params)
+        self.evaluator = RolloutWorker(eval_env, policy, dims, **eval_params)
         # self.policy = config.configure_ddpg(params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params, dims=dims)
         # self.actor = Actor(sess, env, self.batch_size, self.layer_number, FLAGS)
         # self.critic = Critic(sess, env, self.layer_number, FLAGS)
-
         # Parameter determines degree of noise added to actions during training
         # self.noise_perc = noise_perc
         if self.layer_number == 0:

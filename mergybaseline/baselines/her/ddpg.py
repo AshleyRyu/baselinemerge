@@ -329,8 +329,8 @@ class DDPG(object):
     def train(self, stage=True):
         if stage:
             self.stage_batch()
-        critic_loss, actor_loss, Q_grad, pi_grad = self._grads()
-        self._update(Q_grad, pi_grad)
+        critic_loss, actor_loss, Q_grad, pi_grad = self._grads() ## 현재 loss들 가져오는거
+        self._update(Q_grad, pi_grad) ## 아담 업데이트 하는거
         return critic_loss, actor_loss
 
     def _init_target_net(self):
@@ -372,7 +372,7 @@ class DDPG(object):
             self.g_stats = Normalizer(self.dimg, self.norm_eps, self.norm_clip, sess=self.sess)
 
         # mini-batch sampling.
-        batch = self.staging_tf.get()
+        batch = self.staging_tf.get() ## 그냥 꺼내오는거..
         batch_tf = OrderedDict([(key, batch[i])
                                 for i, key in enumerate(self.stage_shapes.keys())])
         batch_tf['r'] = tf.reshape(batch_tf['r'], [-1, 1])

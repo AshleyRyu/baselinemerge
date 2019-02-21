@@ -232,7 +232,7 @@ num_test_episodes = 100
 class RolloutWorker:
 
     @store_args
-    def __init__(self, venv, policy, dims, logger, T, rollout_batch_size=1,
+    def __init__(self, venv, policy, dims, T, rollout_batch_size=1,
                  exploit=False, use_target_net=False, compute_Q=False, noise_eps=0,
                  random_eps=0, history_len=100, render=False, monitor=False, **kwargs):
         """Rollout worker generates experience by interacting with one or many environments.
@@ -242,7 +242,7 @@ class RolloutWorker:
                 when called
             policy (object): the policy that is used to act
             dims (dict of ints): the dimensions for observations (o), goals (g), and actions (u)
-            logger (object): the logger that is used by the rollout worker
+            logger (object): the logger that is used by the rollout worker -> Deleted
             rollout_batch_size (int): the number of parallel rollouts that should be used
             exploit (boolean): whether or not to exploit, i.e. to act optimally according to the
                 current policy without any exploration
@@ -291,6 +291,8 @@ class RolloutWorker:
         policy acting on it accordingly.
         """
         self.reset_all_rollouts()
+
+        print("마침내 generate_rollout!")
 
         # compute observations
         o = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)  # observations
@@ -396,7 +398,7 @@ class RolloutWorker:
                     info_values[idx][t, i] = info[i][key]
 
             if np.isnan(o_new).any():
-                self.logger.warn('NaN caught during rollout generation. Trying again...')
+                # self.logger.warn('NaN caught during rollout generation. Trying again...')
                 self.reset_all_rollouts()
                 return self.generate_rollouts()
 

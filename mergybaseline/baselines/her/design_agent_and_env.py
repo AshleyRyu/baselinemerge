@@ -2,6 +2,9 @@
 This file provides the template for designing the agent and environment.  The below hyperparameters must be assigned to a value for the algorithm to work properly.  
 """
 import os
+import sys
+sys.path.insert(0, 'baselines/her')
+import agent as ag
 
 import click
 import numpy as np
@@ -12,19 +15,17 @@ from baselines import logger
 from baselines.common import set_global_seeds, tf_util
 from baselines.common.mpi_moments import mpi_moments
 from baselines.her.rollout import RolloutWorker
+from baselines.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env, make_env
+# import baselines.her.agent as ag
 # from baselines.common.cmd_util import parse_options
 
 
 import numpy as np
 # from environment import Environment
 # from utils import check_validity
-import sys
-sys.path.insert(0, 'baselines/her')
-import agent as ag
 # from . import Agent
 # from agent import Agent
 # from baselines.her.agent import Agent
-from baselines.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env, make_env
 # import baselines.her.experiment.config as config
 import sys
 sys.path.insert(0, 'baselines/her/experiment')
@@ -189,9 +190,11 @@ def design_agent_and_env(FLAGS, env, policy, dims, logger, rollout_params, eval_
     FLAGS.test=False
     FLAGS.train_only=False
     FLAGS.verbose=False
-    print("FLAGS = {}".format(FLAGS))
+    # print("FLAGS = {}".format(FLAGS))
+    print("@ design, FLAGS={}, dims={}, env={}, policy={}, agent_params={}, rollout_params={}, eval_params={}".format(FLAGS, dims, env, policy, agent_params, rollout_params, eval_params))
     # rollout_worker = RolloutWorker(env, policy, dims, logger, monitor=True, **rollout_params)
-    agent = Agent(FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params, **eval_params)
+    agent = ag.Agent(dims, FLAGS, env, policy, agent_params, rollout_params, eval_params, monitor=True)
+    
     # policy = Agent(FLAGS, env, agent_params, dims, params, clip_return).policy
     # policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, FLAGS=FLAGS, agent_params=agent_params)
         
