@@ -174,6 +174,7 @@ class Agent():
         end_goal = np.zeros(shape=(self.end_goal_dim,))
         for i in range(layer_num):
             end_goal[i] = np.random.uniform(self.goal_space_test[i][0],self.goal_space_test[i][1])
+            print("at get_next_goal1={}\t 1={}".format(self.goal_space_test[i][0],self.goal_space_test[i][1]))
             
         # end_goal[1] = np.random.uniform(self.goal_space_test[1][0],self.goal_space_test[1][1])
         # end_goal[2] = np.random.uniform(self.goal_space_test[2][0],self.goal_space_test[2][1])

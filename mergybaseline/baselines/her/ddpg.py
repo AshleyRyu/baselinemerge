@@ -122,6 +122,8 @@ class DDPG(object):
 
         global DEMO_BUFFER
         DEMO_BUFFER = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions) #initialize the demo buffer; in the same way as the primary data buffer
+        print("@ ddgp.py , buffer={}".format(self.buffer))
+        
         # self.meta_controller = DDPG(self.dimo + self.dimg, self.dimo, self.clip_obs)
         # ##
         # self.low_replay_buffer = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions)
@@ -318,6 +320,7 @@ class DDPG(object):
         transitions['o_2'], transitions['g_2'] = self._preprocess_og(o_2, ag_2, g)
 
         transitions_batch = [transitions[key] for key in self.stage_shapes.keys()]
+        print("@ ddpg, sample_batch, transitions_batch={}".format(transitions_batch))
         return transitions_batch
 
     def stage_batch(self, batch=None):

@@ -377,7 +377,9 @@ class Layer():
             # If layer is bottom level, execute low-level action
             else:
                 # next_state = env.execute_action(action)
-                next_state = self.policy.sample_batch() ## 여기서 assert error났다
+                # next_state = 
+                episode = agent.layers[0].rollout_worker.generate_rollouts(self.FLAGS)
+                # next_state = self.policy.sample_batch() ## 여기서 assert error났다
 
                 # Increment steps taken
                 agent.steps_taken += 1
@@ -386,7 +388,7 @@ class Layer():
                 if agent.steps_taken >= max_actions:
                     print("Out of actions (Steps: %d)" % agent.steps_taken)
 
-                agent.current_state = next_state
+                agent.current_state = self.policy.sample_batch()['o']
 
                 # Determine whether any of the goals from any layer was achieved and, if applicable, the highest layer whose goal was achieved
                 goal_status, max_lay_achieved = agent.check_goals(env)
