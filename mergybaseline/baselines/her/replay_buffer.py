@@ -40,7 +40,7 @@ class ReplayBuffer:
         buffers = {}
 
         with self.lock:
-            assert self.current_size > 0
+            # assert self.current_size > 0 ############################잠시지움
             for key in self.buffers.keys():
                 buffers[key] = self.buffers[key][:self.current_size]
 

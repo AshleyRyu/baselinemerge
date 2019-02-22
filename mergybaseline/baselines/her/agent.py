@@ -15,6 +15,8 @@ import config
 
 sys.path.insert(0, 'baselines/her')
 from layer import Layer
+
+
 # import .experiment.config as config
 #
 # Below class instantiates an agent
@@ -23,7 +25,7 @@ class Agent():
     ## FLAGS, env,agent_params, policy, dims, logger, monitor=True, **rollout_params
     def __init__(self, dims, FLAGS, env, policy, agent_params, rollout_params, eval_params, monitor=True):
 
-        print("@ Agent, FLAGS={}, dims={}, env={}, policy={}, agent_params={}, rollout_params={}, eval_params={}".format(FLAGS, dims, env, policy, agent_params, rollout_params, eval_params))
+        # print("@ Agent, FLAGS={}, dims={}, env={}, policy={}, agent_params={}, rollout_params={}, eval_params={}".format(FLAGS, dims, env, policy, agent_params, rollout_params, eval_params))
 
         self.FLAGS = FLAGS
         self.sess = tf.Session()
@@ -57,6 +59,16 @@ class Agent():
         self.performance_log = []
 
         self.other_params = agent_params
+
+        ##
+        self.goal_space_train = [[-np.pi,np.pi],[-np.pi/4,0],[-np.pi/4,np.pi/4]]
+        self.goal_space_test = [[-np.pi,np.pi],[-np.pi/4,0],[-np.pi/4,np.pi/4]]
+        self.subgoal_bounds = np.array([[-2*np.pi,2*np.pi],[-2*np.pi,2*np.pi],[-2*np.pi,2*np.pi],[-4,4],[-4,4],[-4,4]])
+
+        self.end_goal_dim = len(self.goal_space_test)
+        self.subgoal_dim = len(self.subgoal_bounds)
+        # self.subgoal_bounds = subgoal_bounds
+        ##
 
         # return 
 
@@ -153,31 +165,95 @@ class Agent():
         for i in range(len(self.layers)):   
             self.layers[i].learn(self.num_updates)
 
-       
+
+    # Function returns an end goal
+    def get_next_goal(self, test, layer_num):
+
+        end_goal = np.zeros((len(self.goal_space_test)))
+
+        end_goal = np.zeros(shape=(self.end_goal_dim,))
+        for i in range(layer_num):
+            end_goal[i] = np.random.uniform(self.goal_space_test[i][0],self.goal_space_test[i][1])
+            
+        # end_goal[1] = np.random.uniform(self.goal_space_test[1][0],self.goal_space_test[1][1])
+        # end_goal[2] = np.random.uniform(self.goal_space_test[2][0],self.goal_space_test[2][1])
+
+
+        if not test and self.goal_space_train is not None:
+            for i in range(len(self.goal_space_train)):
+                end_goal[i] = np.random.uniform(self.goal_space_train[i][0],self.goal_space_train[i][1])
+        else:
+            assert self.goal_space_test is not None, "Need goal space for testing. Set goal_space_test variable in \"design_env.py\" file"
+
+            for i in range(len(self.goal_space_test)):
+                end_goal[i] = np.random.uniform(self.goal_space_test[i][0],self.goal_space_test[i][1])
+
+
+        # # Visualize End Goal
+        # self.display_end_goal(end_goal)
+
+        return end_goal
+    # def train_original(self,env, episode_num):
+
+    #     # Select final goal from final goal space, defined in "design_agent_and_env.py" 
+    #     self.goal_array[self.FLAGS.layers - 1] = env.get_next_goal(self.FLAGS.test, self.FLAGS.layers)
+    #     print("Next End Goal: ", self.goal_array[self.FLAGS.layers - 1])
+
+    #     # Select initial state from in initial state space, defined in environment.py
+    #     # self.current_state = env.reset_sim()
+    #     self.current_state = env.reset().observation
+    #     # print("Initial State: ", self.current_state)
+
+    #     # Reset step counter
+    #     self.steps_taken = 0
+
+    #     # Train for an episode
+    #     # ?? FLAGS.layers-1 면 최상단 layer를 episode만큼 train한다?
+    #     print("@ agent.train, layer-1={}".format(self.FLAGS.layers-1))
+    #     goal_status, max_lay_achieved = self.layers[self.FLAGS.layers-1].train(self,env, episode_num = episode_num)
+
+    #     # Update actor/critic networks if not testing
+    #     if not self.FLAGS.test:
+    #         self.learn()
+
+    #     # Return whether end goal was achieved
+    #     return goal_status[self.FLAGS.layers-1]
+
     # Train agent for an episode
     def train(self, env, episode_num):
 
-        # Select final goal from final goal space, defined in "design_agent_and_env.py" 
-        # self.goal_array[self.FLAGS.layers - 1] = env.get_next_goal(self.FLAGS.test)
-
+        end_goal = np.zeros(shape=(self.end_goal_dim,))
+        
         ## from rollout.py
-        self.obs_dict = self.env.reset()
+        print("env={}".format(env))
+        self.obs_dict = env.reset()
+        print("@ agent, obs_dict={}".format(self.obs_dict))
         self.initial_o = self.obs_dict['observation']
         self.initial_ag = self.obs_dict['achieved_goal']
         self.g = self.obs_dict['desired_goal']
-        self.goal_array[self.FLAGS.layers - 1] = self.g
+        ##
+        # Select final goal from final goal space, defined in "design_agent_and_env.py" 
+        # self.goal_array[self.FLAGS.layers - 1] = self.get_next_goal(self.FLAGS.test, self.FLAGS.layers)
+        self.goal_array[self.FLAGS.layers - 1] = self.g[0] ##
         print("Next End Goal: ", self.goal_array[self.FLAGS.layers - 1])
+
+        
+        
+
+        # self.goal_array[self.FLAGS.layers - 1] = get_next_goal(self.FLAGS.test, self.FLAGS.layers)
+        # self.goal_array[self.FLAGS.layers - 1] = self.g
+        # print("Next End Goal: ", self.goal_array[self.FLAGS.layers - 1])
 
         # Select initial state from in initial state space, defined in environment.py
         # self.current_state = env.reset_sim()
-        self.current_state = self.initial_o
+        self.current_state = self.initial_o[0]
         print("Initial State: ", self.current_state)
 
         # Reset step counter
         self.steps_taken = 0
 
         # Train for an episode
-        goal_status, max_lay_achieved = self.layers[self.FLAGS.layers-1].train(self,env, episode_num = episode_num)
+        goal_status, max_lay_achieved = self.layers[self.FLAGS.layers-1].train(self, env, self.obs_dict, episode_num = episode_num)
 
         # Update actor/critic networks if not testing
         if not self.FLAGS.test:

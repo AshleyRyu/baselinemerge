@@ -52,13 +52,13 @@ def train(*, env_name, agent, policy, evaluator,
     logger.info("Debug @ basemerge : Training...") # 마지막 ### 8
     best_success_rate = -1
 
-    if policy.bc_loss == 1: policy.init_demo_buffer(demo_file) #initialize demo buffer if training with demonstrations
-        
+    if policy.bc_loss == 1: policy.init_demo_buffer(demo_file) #initialize demo buffer if training with demonstrations 
+    # rollout_workder = agent.layers[0].RolloutWorker
     # num_timesteps = n_epochs * n_cycles * rollout_length * number of rollout workers
     for epoch in range(n_epochs):
         # train
         rollout_worker.clear_history()
-        rollout_worker.clear_history()
+        # rollout_worker.clear_history()
         for _ in range(n_cycles):
             episode = rollout_worker.generate_rollouts(FLAGS)
             # episode = rollout_worker.generate_rollouts(FLAGS) ##
@@ -171,12 +171,16 @@ def HAC_train(*, env, agent, policy,
             agent.layers[i].rollout_worker.clear_history()
         # train
 
-        
-        for _ in range(n_cycles):
-            # episode = agent.layers[0].rollout_worker.generate_rollouts()
-            for i in range(len(agent.layers)): # 각 레이어 별로 policy 저장
-                episode = agent.layers[i].rollout_worker.generate_rollouts(FLAGS)
-            policy.store_episode(episode)
+        ## 한번 지워봄
+        # for _ in range(n_cycles):
+            # episode = agent.layers[0].rollout_worker.generate_rollouts(FLAGS)
+        ##
+
+            # for i in range(len(agent.layers)): # 각 레이어 별로 policy 저장
+            #     episode = agent.layers[i].rollout_worker.generate_rollouts(FLAGS)
+            #     print("======rollout_worker test=======")
+            #     print(agent.layers[i].rollout_worker.generate_rollouts(FLAGS))
+            # policy.store_episode(episode)
             # episode = agent.rollout_worker.generate_rollouts()
             # success = agent.train(env, epoch)
 
@@ -188,8 +192,34 @@ def HAC_train(*, env, agent, policy,
             #         successful_epoch += 1
 
             # agent.save_model(epoch)
-            for _ in range(n_batches):
-                policy.train()
+
+        for batch in range(n_batches):
+
+            if mix_train_test and batch % TEST_FREQ == 0:
+                print("\n--- TESTING ---")
+                agent.FLAGS.test = True
+                num_episodes = num_test_episodes            
+
+                # Reset successful episode counter
+                successful_episodes = 0
+
+            for episode in range(num_episodes):
+                
+                print("\nBatch %d, Episode %d" % (batch, episode))
+                
+                # Train for an episode
+                # success = agent.
+                success = agent.train(env, episode)
+
+                if success:
+                    print("Batch %d, Episode %d End Goal Achieved\n" % (batch, episode))
+                    
+                    # Increment successful episode counter if applicable
+                    if mix_train_test and batch % TEST_FREQ == 0:
+                        successful_episodes += 1   
+                
+                
+                # policy.train() ##한번 지워봤슈
                 # env.render() #jw
                 ''' policy.train() 함수는요
                 def train(self, stage=True):
@@ -208,7 +238,7 @@ def HAC_train(*, env, agent, policy,
                 '''
 
 
-            policy.update_target_net() #네트워크 업뎃 ;;
+        policy.update_target_net() #네트워크 업뎃 ;; 인덴테이션 한번 지워봤슈
 
         # test
         for i in range(len(agent.layers)):

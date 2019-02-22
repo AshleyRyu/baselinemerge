@@ -22,6 +22,8 @@ class Layer():
         self.FLAGS = FLAGS
         self.sess = sess
 
+        self.policy = policy 
+
         # Set time limit for each layer.  If agent uses only 1 layer, time limit is the max number of low-level actions allowed in the episode (i.e, env.max_actions).
         if FLAGS.layers > 1:
             self.time_limit = FLAGS.time_scale
@@ -130,7 +132,14 @@ class Layer():
         # If testing mode or testing subgoals, action is output of actor network without noise
         if agent.FLAGS.test or subgoal_test:
 
-            return self.actor.get_action(np.reshape(self.current_state,(1,len(self.current_state))), np.reshape(self.goal,(1,len(self.goal))))[0], "Policy", subgoal_test
+            return self.policy.get_actions(
+                o, ag, self.g,
+                compute_Q=self.compute_Q,
+                noise_eps=self.noise_eps if not self.exploit else 0.,
+                random_eps=self.random_eps if not self.exploit else 0.,
+                use_target_net=self.use_target_net)
+
+            # return self.actor.get_action(np.reshape(self.current_state,(1,len(self.current_state))), np.reshape(self.goal,(1,len(self.goal))))[0], "Policy", subgoal_test
 
         else:
 
@@ -314,10 +323,10 @@ class Layer():
 
     # Learn to achieve goals with actions belonging to appropriate time scale.  
     # "goal_array" contains the goal states for the current layer and all higher layers
-    def train(self, agent, env, subgoal_test = False, episode_num = None):
+    def train(self, agent, env, obs_dict, subgoal_test = False, episode_num = None):
 
         # print("\nTraining Layer %d" % self.layer_number)
-
+        print("@ layer.py train obs_dict={}".format(obs_dict))
         # Set layer's current state and new goal state
         self.goal = agent.goal_array[self.layer_number]
         self.current_state = agent.current_state
@@ -333,13 +342,24 @@ class Layer():
 
         # Current layer has self.time_limit attempts to each its goal state.
         attempts_made = 0
+        max_actions = 1000  
+
 
         while True:
 
             # Select action to achieve goal state using epsilon-greedy policy or greedy policy if in test mode
-            action, action_type, next_subgoal_test = self.choose_action(agent, env, subgoal_test)
+            # action, action_type, next_subgoal_test = self.choose_action(agent, env, subgoal_test)
             # action, action_type, next_subgoal_test = actions = self.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'])
             # self.choose_action(agent, env, subgoal_test)
+            obs = obs_dict
+            action = self.policy.get_actions(obs['observation'], obs['achieved_goal'], obs['desired_goal'])
+            if np.random.random_sample() < agent.subgoal_test_perc:
+                next_subgoal_test = True
+            else:
+                next_subgoal_test = False
+
+
+            # episode = agent.layers[0].rollout_worker.generate_rollouts(self.FLAGS)
 
             """
             if self.layer_number == agent.FLAGS.layers - 1:
@@ -352,17 +372,18 @@ class Layer():
 
                 agent.goal_array[self.layer_number - 1] = action
 
-                goal_status, max_lay_achieved = agent.layers[self.layer_number - 1].train(agent, env, next_subgoal_test, episode_num)
+                goal_status, max_lay_achieved = agent.layers[self.layer_number - 1].train(agent, env, obs_dict, next_subgoal_test, episode_num)
 
             # If layer is bottom level, execute low-level action
             else:
-                next_state = env.execute_action(action)
+                # next_state = env.execute_action(action)
+                next_state = self.policy.sample_batch() ## 여기서 assert error났다
 
                 # Increment steps taken
                 agent.steps_taken += 1
                 # print("Num Actions Taken: ", agent.steps_taken)
 
-                if agent.steps_taken >= env.max_actions:
+                if agent.steps_taken >= max_actions:
                     print("Out of actions (Steps: %d)" % agent.steps_taken)
 
                 agent.current_state = next_state
