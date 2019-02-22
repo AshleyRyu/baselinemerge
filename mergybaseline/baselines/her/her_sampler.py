@@ -24,7 +24,8 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         batch_size = batch_size_in_transitions
 
         # Select which episodes and time steps to use.
-        print(rollout_batch_size)
+        print("@ her_sampler.py, rollout_batch_size={}".format(rollout_batch_size))
+        print("@ her_sampler.py, batch_size={}".format(batch_size))
         episode_idxs = np.random.randint(0, rollout_batch_size, batch_size)
         t_samples = np.random.randint(T, size=batch_size)
         transitions = {key: episode_batch[key][episode_idxs, t_samples].copy()
